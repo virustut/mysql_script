@@ -1,0 +1,117 @@
+1. Show MySQL variables related to performance
+
+SHOW VARIABLES LIKE '%buffer%';
+SHOW VARIABLES LIKE '%cache%';
+SHOW VARIABLES LIKE '%timeout%';
+
+
+2. Show current MySQL server settings
+
+SHOW VARIABLES;
+
+
+3. Show MySQL engine status
+
+SHOW ENGINE INNODB STATUS;
+
+
+4. Check and repair tables
+
+REPAIR TABLE tablename;
+
+
+5. Analyze tables for better performance
+
+ANALYZE TABLE tablename;
+
+
+6. Optimize tables to reclaim space and defragment data
+
+OPTIMIZE TABLE tablename;
+
+
+7. Show databases with their sizes
+
+SELECT table_schema "Database Name",
+       SUM(data_length + index_length) / 1024 / 1024 "Size (MB)"
+FROM information_schema.tables
+GROUP BY table_schema;
+
+
+
+8. Show largest tables in a database
+
+SELECT table_schema "Database Name",
+       table_name "Table Name",
+       table_rows "Rows Count",
+       data_length / 1024 / 1024 "Data Size (MB)",
+       index_length / 1024 / 1024 "Index Size (MB)"
+FROM information_schema.tables
+WHERE table_schema = 'dbname'
+ORDER BY data_length + index_length DESC
+LIMIT 10;
+
+
+9. Show fragmented indexes
+
+SELECT table_schema "Database Name",
+       table_name "Table Name",
+       index_name "Index Name",
+       seq_in_index "Sequence in Index",
+       non_unique "Non Unique",
+       null_frac "Null Fraction",
+       avg_field_length "Avg Field Length",
+       avg_part_count "Avg Part Count",
+       avg_page_space_used "Avg Page Space Used"
+FROM information_schema.statistics
+WHERE table_schema = 'dbname'
+ORDER BY avg_page_space_used DESC;
+
+
+10. Show open connections
+
+SHOW STATUS WHERE `variable_name` = 'Threads_running';
+
+
+11. Check for fragmented tables
+
+SELECT 
+    table_schema AS `Database`,
+    table_name AS `Table`,
+    data_free AS `Free Space`
+FROM 
+    information_schema.tables
+WHERE 
+    data_free > 0
+ORDER BY 
+    data_free DESC;
+
+
+12. Find duplicate rows in a table
+
+SELECT 
+    column1, column2, COUNT(*)
+FROM 
+    tablename
+GROUP BY 
+    column1, column2
+HAVING 
+    COUNT(*) > 1;
+
+
+13. Show table fragmentation
+
+SELECT 
+    TABLE_NAME,
+    ROUND(((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024), 2) AS `Size (MB)`,
+    ROUND(((DATA_LENGTH + INDEX_LENGTH - DATA_FREE) / 1024 / 1024), 2) AS `Size Used (MB)`,
+    ROUND(((DATA_FREE) / 1024 / 1024), 2) AS `Size Free (MB)`,
+    ROUND((DATA_FREE / (DATA_LENGTH + INDEX_LENGTH) * 100), 2) AS `Fragmentation (%)`
+FROM 
+    information_schema.TABLES
+WHERE 
+    TABLE_SCHEMA = 'dbname'
+ORDER BY 
+    `Fragmentation (%)` DESC;
+
+

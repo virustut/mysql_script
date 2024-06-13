@@ -1,0 +1,168 @@
+1. Show all databases
+
+SHOW DATABASES;
+
+2. Create a new database
+
+CREATE DATABASE IF NOT EXISTS dbname;
+
+3. Drop a database
+
+DROP DATABASE IF EXISTS dbname;
+
+
+4. Show all tables in a database
+
+SHOW TABLES FROM dbname;
+
+
+5. Show table structure
+
+DESCRIBE tablename;
+
+             or 
+SHOW COLUMNS FROM tablename;
+
+
+6. Create a new table
+
+CREATE TABLE tablename (
+    column1 datatype constraints,
+    column2 datatype constraints,
+    ...
+);
+
+
+7. Drop a table
+
+DROP TABLE IF EXISTS tablename;
+
+
+8. Insert records into a table
+
+INSERT INTO tablename (column1, column2, ...)
+VALUES (value1, value2, ...);
+
+
+9. Update records in a table
+
+UPDATE tablename
+SET column1 = value1, column2 = value2, ...
+WHERE condition;
+
+
+
+10. Delete records from a table
+
+DELETE FROM tablename
+WHERE condition;
+
+
+
+11. Select records from a table
+
+SELECT column1, column2, ...
+FROM tablename
+WHERE condition;
+
+
+12. Show database engine used by a table
+
+SHOW TABLE STATUS LIKE 'tablename';
+
+
+13. Show running queries
+
+SHOW PROCESSLIST;
+
+14. Kill a query
+
+KILL query_id;
+
+
+15. Show index information for a table
+
+SHOW INDEX FROM tablename;
+
+
+16. Show size of databases
+
+SELECT table_schema "Database Name",
+       SUM(data_length + index_length) / 1024 / 1024 "Database Size in MB"
+FROM information_schema.tables
+GROUP BY table_schema;
+
+
+17. Show size of tables in a specific database
+
+SELECT table_name "Table Name",
+       table_rows "Rows Count",
+       data_length / 1024 / 1024 "Data Size in MB",
+       index_length / 1024 / 1024 "Index Size in MB"
+FROM information_schema.tables
+WHERE table_schema = 'dbname';
+
+
+18. Show active MySQL connections
+
+SHOW STATUS WHERE `variable_name` = 'Threads_connected';
+
+19. Show open MySQL connections
+
+SHOW STATUS WHERE `variable_name` = 'Threads_running';
+
+
+20. Check MySQL version
+
+SELECT VERSION();
+
+21. Check MySQL server uptime
+
+SHOW STATUS WHERE `variable_name` = 'Uptime';
+
+
+22. Show MySQL server variables
+
+SHOW VARIABLES;
+
+
+23. Show MySQL server status
+
+SHOW STATUS;
+
+
+24. Flush MySQL query cache
+
+FLUSH QUERY CACHE;
+
+25. Flush MySQL table cache
+
+FLUSH TABLES;
+
+
+26. Reset MySQL query cache
+
+RESET QUERY CACHE;
+
+
+27. Optimize all tables in a database
+
+OPTIMIZE TABLE tablename;
+
+
+28. Set the MySQL root password
+
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
+
+
+29. Grant all privileges to a MySQL user
+
+GRANT ALL PRIVILEGES ON *.* TO 'username'@'localhost' IDENTIFIED BY 'password';
+
+
+30. Revoke all privileges from a MySQL user
+
+REVOKE ALL PRIVILEGES ON *.* FROM 'username'@'localhost';
+
+
+
