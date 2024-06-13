@@ -1,0 +1,41 @@
+1. Using mysqldump with GPG (GnuPG)
+
+You can use mysqldump to export your MySQL database and then encrypt the backup file using GPG.
+
+Steps:
+
+1. Install GnuPG if not already installed:
+
+$ sudo apt-get install gnupg
+
+2. Export Database using mysqldump:
+
+$ mysqldump -u username -p dbname > dbname_backup.sql
+
+3. Encrypt Backup File using GPG:
+
+$ gpg --symmetric --cipher-algo AES256 dbname_backup.sql
+
+4. Result:  This will create an encrypted file dbname_backup.sql.gpg.
+
+Restore Encrypted Backup:
+
+gpg --decrypt dbname_backup.sql.gpg > dbname_backup.sql
+mysql -u username -p dbname < dbname_backup.sql
+
+
+Example: Using mysqldump with GPG
+
+# Export database
+mysqldump -u username -p dbname > dbname_backup.sql
+
+# Encrypt backup file
+gpg --symmetric --cipher-algo AES256 dbname_backup.sql
+
+# Decrypt backup file
+gpg --decrypt dbname_backup.sql.gpg > dbname_backup.sql
+
+# Restore database
+mysql -u username -p dbname < dbname_backup.sql
+
+

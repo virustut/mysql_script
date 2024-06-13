@@ -1,0 +1,57 @@
+1. Understand Your Workload
+Before making any changes, it’s important to understand your application's workload and requirements. This includes the number of concurrent users, types of queries, data size, and expected growth.
+
+2. MySQL Configuration File (my.cnf)
+Location:
+
+a) Linux/Unix: /etc/mysql/my.cnf, /etc/my.cnf, or /etc/mysql/mysql.conf.d/mysqld.cnf 
+
+b) Windows: C:\ProgramData\MySQL\MySQL Server 8.0\my.ini
+
+Important Parameters to Tune:
+
+
+InnoDB Buffer Pool Size:
+
+ a) Determines how much memory is allocated to the InnoDB storage engine.
+
+innodb_buffer_pool_size = 1G   # Adjust based on available memory and workload
+
+Key Buffer Size:
+
+b) For MyISAM tables (if used).
+
+key_buffer_size = 256M   # Adjust based on usage of MyISAM tables
+
+
+Query Cache:
+ c) Enables caching of SELECT query results.
+
+query_cache_type = 1
+query_cache_size = 64M   # Adjust based on workload
+
+Connection Settings:
+ d) max_connections = 200   # Adjust based on workload
+
+Log Settings:
+ e) Enable slow query logging for performance analysis 
+
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/mysql-slow.log   # Adjust path as needed
+long_query_time = 2   # Time in seconds; log queries taking longer than this
+ 
+
+InnoDB Settings:
+  f) InnoDB is the default storage engine for MySQL 5.5 and higher.
+
+innodb_file_per_table = 1
+innodb_flush_log_at_trx_commit = 2
+innodb_log_file_size = 256M   # Adjust based on workload
+
+
+Temporary Tables:
+ g) Configure settings for handling temporary tables.
+
+tmp_table_size = 64M
+max_heap_table_size = 64M
+

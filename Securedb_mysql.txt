@@ -1,0 +1,147 @@
+1. Use Strong Passwords
+
+CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';
+
+Root Account: Change the default password for the root account.
+
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
+
+
+2. Limit User Privileges
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbname.* TO 'username'@'localhost';
+
+3. Encrypt Connections
+
+Encrypt MySQL connections to protect data in transit using SSL/TLS.
+
+Configuring MySQL for SSL/TLS:
+
+1. Generate SSL certificates:
+
+bash
+#openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/mysql/server-key.pem -out /etc/mysql/server-cert.pem -days 365
+ 
+2. Update MySQL configuration (my.cnf):
+
+[mysqld]
+ssl-cert=/etc/mysql/server-cert.pem
+ssl-key=/etc/mysql/server-key.pem
+
+
+3. Restart Mysql 
+
+sudo systemctl restart mysql
+
+
+4. Enable Auditing
+
+Enable MySQL's built-in auditing features to log connections, queries, and administrative activities.
+
+Enable General Query Log:
+
+
+Edit 'my.cnf'
+
+[mysqld]
+general_log = 1
+general_log_file = /var/log/mysql/mysql.log
+
+
+Restart MySQL:
+
+# sudo systemctl restart mysql
+
+5. Regularly Update MySQL
+
+Keep MySQL up-to-date with the latest security patches and updates.
+bash
+
+sudo apt update
+sudo apt upgrade mysql-server
+
+
+6. Disable Remote root Login
+
+UPDATE mysql.user SET Host='localhost' WHERE User='root';
+FLUSH PRIVILEGES;
+
+
+7. Backup and Recovery
+
+Regularly back up your MySQL databases and store backups securely. Test restoration procedures periodically.
+
+8. Implement Firewall and Access Control
+
+Use firewall rules to restrict access to MySQL port (usually 3306).
+Limit access to MySQL by IP address or subnet.
+
+9. Secure MySQL Files and Directories
+
+Secure MySQL configuration files (my.cnf).
+
+Restrict file system access to MySQL data directory (/var/lib/mysql).
+
+10. Monitor and Log
+
+Monitor MySQL performance and logs for suspicious activities. Use tools like mysqladmin, mysqlslap, and mysqlreport.
+
+11. Harden Operating System
+
+Secure the operating system hosting MySQL. This includes applying OS updates, configuring firewalls, and restricting access.
+
+12. Use Database Encryption
+
+Encrypt sensitive data at rest using MySQL's built-in encryption functions or third-party tools.
+
+13. Perform Security Assessments
+
+Example: Harden MySQL User Authentication
+
+# Remove anonymous user
+DROP USER ''@'localhost';
+
+# Remove remote root access
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+
+# Apply password policy
+ALTER USER 'username'@'localhost' PASSWORD EXPIRE;
+ALTER USER 'username'@'localhost' PASSWORD HISTORY 10;
+
+# Enable password expiration
+ALTER USER 'username'@'localhost' PASSWORD EXPIRE INTERVAL 90 DAY;
+
+# Limit failed login attempts
+CREATE USER 'username'@'localhost' FAILED_LOGIN_ATTEMPTS 3;
+
+# Grant minimum required privileges
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbname.* TO 'username'@'localhost';
+
+
+
+Manual Auditing
+You can also implement manual auditing by periodically reviewing MySQL logs and system logs for suspicious activities. This approach requires more effort and may not be as efficient or automated as using a dedicated auditing plugin.
+
+Example: Using MariaDB Audit Plugin
+Here’s a brief example of how to use the MariaDB Audit Plugin:
+
+Install the MariaDB Audit Plugin:
+
+sql
+
+INSTALL SONAME 'server_audit';
+Configure the Audit Plugin:
+
+sql
+
+SET GLOBAL server_audit_logging=ON;
+SET GLOBAL server_audit_events='CONNECT, QUERY';
+SET GLOBAL server_audit_file_path='/var/log/mysql/audit.log';
+
+Review the audit log file (/var/log/mysql/audit.log) for auditing information.
+
+
+
+
+
+
