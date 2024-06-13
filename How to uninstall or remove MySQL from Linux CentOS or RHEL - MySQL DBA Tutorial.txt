@@ -1,0 +1,15 @@
+How to uninstall or remove MySQL from Linux CentOS or RHEL 
+
+Uninstalling or removing MySQL Server from Linux Centos or RHEL is pretty easy. Let's check the MySQL Service first if it is running and active.
+
+$ sudo systemctl status mysqld
+
+It should show you that the service is active and running.
+
+Now to uninstall MySQL from RHEL or Centos, run below command
+
+$ sudo  yum remove mysql
+
+The above command will run the uninstallation process and ask you if you are sure to remove MySQL Server. type y and it will remove MySQL Client and MySQL Server. To make sure the MySQL Server is removed from Linux machine, you can run
+
+$ sudo systemctl status mysqld

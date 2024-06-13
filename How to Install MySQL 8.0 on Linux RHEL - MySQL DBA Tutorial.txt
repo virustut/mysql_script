@@ -1,0 +1,47 @@
+How to Install MySQL 8.0 on Linux RHEL
+Below are the steps to install MySQL 8.0.13 Server on RHEL Linux.
+
+Download and add MySQL Yum Repository to Linux Repository
+
+$ wget https://repo.mysql.com/mysql80-community-release-el7-1.noarch.rpm
+
+
+Install the downloaded package by using below command
+
+$ yum localinstall mysql80-community-release-el7-1.noarch.rpm
+
+
+Verify that the MySQL Yum repository has been added successfully
+
+$ yum repolist enabled | grep "mysql.*-community.*"
+
+
+Install latest MySQL that is going to be MySQL 8.0
+
+$ yum install mysql-community-server
+
+
+Start MySQL Server
+
+$ sudo service mysqld start
+
+
+Secure MySQL Server
+When MySQL 8.0 version is installed, temporary password for root is created in /var/log/mysqld.log
+
+$ grep 'temporary password' /var/log/mysqld.log
+
+Get the password and then run below command. It will ask you to provide the password. Provide the temporary password and then change the root password.
+
+$ sudo mysql_secure_installation
+
+
+Your installation of MySQL 8.0 Server is completed by RHEL. To verify MySQL Server is running , run below command.
+
+$ sudo systemctl status mysqld
+
+It should show you that the mysqld service is active and running.
+
+To login to MySQL server, you can use below command.
+
+$ mysql -u root -p

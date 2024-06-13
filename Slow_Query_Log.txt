@@ -1,0 +1,46 @@
+Step 1: Enable Slow Query Logging
+
+You can enable slow query logging by setting the appropriate configuration variables in the MySQL configuration file (my.cnf or my.ini) or by using SQL commands.
+
+
+Option 1: Edit MySQL Configuration File
+
+	1. Open the MySQL configuration file (usually located at /etc/my.cnf, /etc/mysql/my.cnf, or on Windows, C:	    \ProgramData\MySQL\MySQL Server x.x\my.ini).
+	2. Add or modify the following lines under the [mysqld] section:
+	[mysqld]
+	slow_query_log = 1
+	slow_query_log_file = /var/log/mysql/slow-query.log
+	long_query_time = 2
+	log_queries_not_using_indexes = 1
+
+a) slow_query_log = 1: Enables the slow query log.
+b) slow_query_log_file = /var/log/mysql/slow-query.log: Specifies the path to the slow query log file.
+c) long_query_time = 2: Specifies the threshold (in seconds) for what is considered a slow query. Queries that take longer than this time will be logged.
+d) log_queries_not_using_indexes = 1: Optionally log queries that do not use indexes, regardless of their execution time.
+
+
+
+	3. Save the file and restart MySQL to apply the changes:
+	$ sudo systemctl restart mysql
+
+Option 2: Use SQL Commands
+
+You can enable slow query logging dynamically using SQL commands. However, these changes will not persist across server restarts unless you also update the configuration file.
+
+SET GLOBAL slow_query_log = 'ON';
+SET GLOBAL slow_query_log_file = '/var/log/mysql/slow-query.log';
+SET GLOBAL long_query_time = 2;
+SET GLOBAL log_queries_not_using_indexes = 'ON';
+
+
+Step 2: Verify Slow Query Log Configuration
+
+To verify that the slow query log is enabled and check its settings, you can use the following SQL commands:
+
+SHOW VARIABLES LIKE 'slow_query_log';
+SHOW VARIABLES LIKE 'slow_query_log_file';
+SHOW VARIABLES LIKE 'long_query_time';
+SHOW VARIABLES LIKE 'log_queries_not_using_indexes';
+
+
+

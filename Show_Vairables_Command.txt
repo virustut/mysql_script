@@ -1,0 +1,112 @@
+SHOW VARIABLES LIKE 'log_bin_basename';
+
+SHOW VARIABLES LIKE 'datadir';
+
+
+
+
+PURGE BINARY LOGS TO 'mysql-bin.000002';
+
+
+PURGE BINARY LOGS BEFORE '2024-01-01 00:00:00';
+
+
+1. General System Information
+
+SHOW VARIABLES LIKE 'version';
+SHOW VARIABLES LIKE 'hostname';
+SHOW VARIABLES LIKE 'basedir';
+SHOW VARIABLES LIKE 'datadir';
+
+
+2. Binary Log Variables
+
+SHOW VARIABLES LIKE 'log_bin';
+SHOW VARIABLES LIKE 'log_bin_basename';
+SHOW VARIABLES LIKE 'binlog_format';
+SHOW VARIABLES LIKE 'expire_logs_days';
+SHOW BINARY LOGS;
+
+3. Replication Variables
+
+SHOW VARIABLES LIKE 'server_id';
+SHOW VARIABLES LIKE 'gtid_mode';
+SHOW VARIABLES LIKE 'log_slave_updates';
+
+
+4. InnoDB Variables
+
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+SHOW VARIABLES LIKE 'innodb_log_file_size';
+SHOW VARIABLES LIKE 'innodb_file_per_table';
+SHOW VARIABLES LIKE 'innodb_flush_log_at_trx_commit';
+
+
+5. Performance Schema Variables
+
+SHOW VARIABLES LIKE 'performance_schema';
+SHOW VARIABLES LIKE 'performance_schema_max_table_instances';
+
+
+6. Connection and Thread Variables
+
+SHOW VARIABLES LIKE 'max_connections';
+SHOW VARIABLES LIKE 'thread_cache_size';
+SHOW VARIABLES LIKE 'wait_timeout';
+
+7. Query Cache Variables
+
+SHOW VARIABLES LIKE 'query_cache_size';
+SHOW VARIABLES LIKE 'query_cache_type';
+
+8. Storage Engine Variables
+
+SHOW VARIABLES LIKE 'default_storage_engine';
+SHOW VARIABLES LIKE 'default_tmp_storage_engine';
+
+
+9. Security and Authentication Variables
+
+SHOW VARIABLES LIKE 'validate_password%';
+SHOW VARIABLES LIKE 'secure_file_priv';
+SHOW VARIABLES LIKE 'require_secure_transport';
+
+10. Logging Variables
+
+SHOW VARIABLES LIKE 'general_log';
+SHOW VARIABLES LIKE 'general_log_file';
+SHOW VARIABLES LIKE 'slow_query_log';
+SHOW VARIABLES LIKE 'slow_query_log_file';
+
+
+11. Timeout Variables
+
+SHOW VARIABLES LIKE 'connect_timeout';
+SHOW VARIABLES LIKE 'interactive_timeout';
+SHOW VARIABLES LIKE 'wait_timeout';
+
+12. Character Set and Collation Variables
+
+SHOW VARIABLES LIKE 'character_set%';
+SHOW VARIABLES LIKE 'collation%';
+
+
+13. Buffer and Cache Variables
+
+SHOW VARIABLES LIKE 'key_buffer_size';
+SHOW VARIABLES LIKE 'query_cache_size';
+SHOW VARIABLES LIKE 'tmp_table_size';
+SHOW VARIABLES LIKE 'max_heap_table_size';
+
+14. Temporary Directory Variables
+
+SHOW VARIABLES LIKE 'tmpdir';
+
+
+15. File and Table Handling Variables
+
+SHOW VARIABLES LIKE 'open_files_limit';
+SHOW VARIABLES LIKE 'table_open_cache';
+
+
+
