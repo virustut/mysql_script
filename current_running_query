@@ -1,0 +1,26 @@
+SELECT 
+    p.ID, 
+    p.USER, 
+    p.HOST, 
+    p.DB, 
+    p.COMMAND, 
+    p.TIME, 
+    p.STATE, 
+    p.INFO, 
+    t.QUERY
+FROM 
+    information_schema.PROCESSLIST p
+LEFT JOIN (
+    SELECT 
+        ID, 
+        GROUP_CONCAT(CONCAT('`', INFO, '`') SEPARATOR ' ') AS QUERY
+    FROM 
+        information_schema.PROCESSLIST
+    WHERE 
+        INFO IS NOT NULL
+    GROUP BY 
+        ID
+) t ON p.ID = t.ID
+WHERE 
+    p.COMMAND <> 'Sleep'
+    AND p.INFO IS NOT NULL;
