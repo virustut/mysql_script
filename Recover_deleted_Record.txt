@@ -1,0 +1,60 @@
+Method 1: Recover from Backups
+
+If you have a recent backup, you can restore the backup to recover the deleted record. This is the simplest and most reliable method.
+
+1. Identify the backup that contains the data before it was deleted.
+2. Restore the backup to a new database or instance to avoid overwriting your current data.
+3. Extract the required data from the restored backup.
+4. Insert the recovered data back into your production database.
+
+
+Method 2: Use Binary Logs
+
+If binary logging is enabled, you can use binary logs to recover the deleted records. Binary logs record all changes to the database, allowing you to roll back to a point in time before the deletion occurred.
+
+
+1. Enable Binary Logging (if not already enabled):
+     Add the following lines to your my.cnf or my.ini configuration file and restart MySQL:
+
+[mysqld]
+log_bin = /var/log/mysql/mysql-bin.log
+binlog_format = ROW
+
+
+2. Identify the Relevant Binary Log:
+
+Determine which binary log file contains the deletion event using the SHOW BINARY LOGS command.
+
+SHOW BINARY LOGS;
+
+
+3. Use mysqlbinlog to Examine Binary Logs:
+
+Use the mysqlbinlog utility to examine the contents of the binary logs.
+
+mysqlbinlog --start-datetime="2024-06-12 10:00:00" --stop-datetime="2024-06-12 12:00:00" /var/log/mysql/mysql-bin.000001 > binlog.txt
+
+Adjust the date and time to the period when the deletion occurred.
+
+4. Extract the SQL Statements:
+
+Look through the binlog.txt file to find the SQL statements related to the deletion.
+
+5. Reverse the DELETE Statements:
+
+Manually reverse the DELETE statements if possible, or replay the transactions up to the point before the deletion.
+
+Method 3: Use Point-In-Time Recovery
+
+If you have a backup and binary logs, you can perform point-in-time recovery to restore the database to a specific point before the data was deleted.
+
+1. Restore the Most Recent Full Backup:
+
+Restore the most recent full backup of the database.
+
+2. Apply Binary Logs to Roll Forward:
+
+Use the mysqlbinlog utility to apply the binary logs and roll forward to a point just before the deletion.
+
+mysqlbinlog --stop-datetime="2024-06-12 11:59:59" /var/log/mysql/mysql-bin.000001 | mysql -u root -p your_database
+
