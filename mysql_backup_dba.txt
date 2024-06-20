@@ -96,16 +96,37 @@ What is Binary Log
 
 
 
-------------------------------------------------------------------------------------------------------------------- Backup with different flavour's or with schema &  without schmema only data-------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------- Backup with different flavour's or only schema-----------------------------------------------------------
 
-1 ) Backup the database with out data only schema structure 
+1 ) Backup the database without data only schema structure 
  
-	mysqldump -u root -p --no-data exampledb > exampledb_schema.sql                # single database 
-	mysqldump -u root -p --no-data --databases db1 db2 db3 > multiple_databases_schema.sql    # multiple database 
-	mysqldump -u root -p --no-data --all-databases > all_databases_schema.sql                        # all database 
+	mysqldump -u root -p --no-data exampledb > exampledb_schema.sql                		# single database 
+	mysqldump -u root -p --no-data --databases db1 db2 db3 > multiple_databases_schema.sql          # multiple database 
+	mysqldump -u root -p --no-data --all-databases > all_databases_schema.sql                                  # all database 
 
 
------------------------------------------------------------------------------------------------------------------------------------------------------Restoring the database with different flavour's-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------Step-by-Step Guide to Backup Only the Schema of a Single Table----------------------------------------------------------
+
+	mysqldump -u [username] -p --no-data [database_name] [table_name] > [backup_file].sql
+	mysqldump -u root -p --no-data exampledb employees > employees_schema.sql
+
+
+
+
+
+---------------------------------------------------------------------- Backup with different flavour's  only data---------------------------------------------------------------
+
+Step-by-Step Guide to Back Up Only Data  
+
+	mysqldump -u [username] -p --no-create-info [database_name] > [backup_file].sql
+
+	mysqldump -u root -p --no-create-info exampledb > data_backup.sql                               # only data backuped
+	mysqldump -u root -p --no-create-info exampledb table1 table2 > data_backup.sql        # backup the table level only data
+  	mysql -u [username] -p [database_name] < [backup_file].sql                                         # restore the backup data
+
+
+----------------------------------------------------------------------------Restoring the database with different flavour's-------------------------------------------------------------
+
 												Restoring Only the Schema
 
 Create the Database:   If the database doesn't already exist, you'll need to create it before restoring the schema.
@@ -116,9 +137,17 @@ Create the Database:   If the database doesn't already exist, you'll need to cre
 	Replace [username] with your MySQL username and [database_name] with the name of the database.
 
 Restore the Schema: 
+
 	mysql -u [username] -p [database_name] < [schema_backup].sql
 
-												Restoring Only the Data
+
+------------------------------------------------------------Restore the Schema of single table in the database ---------------------------------------------------
+
+	mysql -u [username] -p [database_name] < [backup_file].sql
+	mysql -u root -p exampledb < employees_schema.sql
+
+
+--------------------------------------------------Restoring Only the Data----------------------------------------------------------
 To restore only the data, you need a backup file that includes the data (i.e., INSERT statements) without any schema definitions.
 
 Prepare the Data SQL File:  Ensure you have a .sql file that contains only the data (i.e., INSERT statements without CREATE TABLE statements).
@@ -141,7 +170,7 @@ SET foreign_key_checks = 0;
 SET foreign_key_checks = 1;
 
 
------------------------------------------------------------------------------------------------------------------------------------Step-by-Step Guide to Backup Specific Tables------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------Step-by-Step Guide to Backup Specific Tables----------------------------------------------
 
 
 
