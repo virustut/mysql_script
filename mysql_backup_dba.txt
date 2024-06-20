@@ -1,0 +1,173 @@
+  Types of Backups in MySQL
+
+   1. Logical Backup
+   2. Physical (Raw) Backup 
+   3. Snapshot Backup 
+   4. Binary log Backup
+   5. Incremental / Differential Backups
+
+
+1. Logical Backup : This is  a dump from logical database structure (CREATE DATABASE  , CREATE TABLE statements) and
+content (INSERT statement)
+
+
+recomended is to be used smaller amount of data 
+
+disadvantage is this method is slower (backup and restore) 
+advantage is useful to copy some data to a different environment to run tests 
+
+2. Physical (RAW) Backup : 
+
+In short , this consists of exact copies of database directories and files
+
+copy for all or a part from mysql datadir directory . This kind of backup is most used to restore or create  a new replica node easily and quickly and is used to address the host failure.
+ 
+ it's recomended to restore using the same mysql version .
+
+we can use percona xtrabackup because it can include any related files such as configuration file like cnf config files.
+
+
+
+3. Snapshot Backup 
+
+ This provide logical copies of the file system at a given point in time , without requiring a physical copy of the entire file system .
+
+ Mysql itself does not provide the capability of taking file system snapshots but it is available using third party solution like LVM or  ZFS
+
+This disadvantages is that sometimes physical backup do not compress much , because data is usually in a binary format and sometimes the table is already compressed .
+
+4. Binary Log Backups 
+
+ Binlog backup specifically address RPO .
+
+ Binary log file contain records of each SQL query executed that made changes 
+
+ From Mysql 5.6 on , you can use mysqlbinlog to stream binary logs from a remote server
+
+ You can combine binlog backups with Percona Xtrabackup or mydumper backup to allow restoration up to the end of the most-recently-backed-up binary log.
+
+ 5. Incremental / Differential Backups
+
+ An incremental backup is a backup of everything that has changed since the last backup (a binary log backup is a special case of an incremental backup)
+
+this is good if your db size is huge as you can take a full backup at the begining of the week and run incremental backup per day.
+
+Incremental backup typically negatively affect the RTO 
+
+Percona Xtrabackup supports both incremental and differential backups .
+
+
+Encryption 
+
+Backup have sensitive data ,so it's highly recomended to encrypt the especially for offsite storage 
+
+Don't forget to get a copy of the keys/passphrase 
+
+
+Restore Testing 
+
+ Depending on your business , it's highly recomended to test your backups at least once per month
+
+ Retention Requirements 
+
+30 Days of binlog backup locally on the backup server 
+
+For backup keep in mind you will need a minimum of 2.5 times the current dataset size as free disk space to save/meet 
+
+
+
+
+
+
+-------------------------------------------------------------------Binary Log -----------------------------------------------------------------
+
+What is Binary Log 
+
+ set of log file that contain information about data modification made to a mysql server instance
+
+ The log is enabled by starting the server with the --log-bin option
+
+ it contains all statements that update data .
+ 
+ it also contains statements that potentially could have updated it (ex .  a delete which matched no rows) unless row-based logging is used.
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------- Backup with different flavour's or with schema &  without schmema only data-------------------------------------------------------------------------------------------------------------------------------
+
+1 ) Backup the database with out data only schema structure 
+ 
+	mysqldump -u root -p --no-data exampledb > exampledb_schema.sql                # single database 
+	mysqldump -u root -p --no-data --databases db1 db2 db3 > multiple_databases_schema.sql    # multiple database 
+	mysqldump -u root -p --no-data --all-databases > all_databases_schema.sql                        # all database 
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------Restoring the database with different flavour's-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+												Restoring Only the Schema
+
+Create the Database:   If the database doesn't already exist, you'll need to create it before restoring the schema.
+
+
+	mysql -u [username] -p -e "CREATE DATABASE [database_name];"
+
+	Replace [username] with your MySQL username and [database_name] with the name of the database.
+
+Restore the Schema: 
+	mysql -u [username] -p [database_name] < [schema_backup].sql
+
+												Restoring Only the Data
+To restore only the data, you need a backup file that includes the data (i.e., INSERT statements) without any schema definitions.
+
+Prepare the Data SQL File:  Ensure you have a .sql file that contains only the data (i.e., INSERT statements without CREATE TABLE statements).
+
+
+Restore the Data: 
+	mysql -u [username] -p [database_name] < [data_backup].sql
+
+	mysql -u root -p exampledb < exampledb_data.sql
+
+
+
+Note : 
+
+Error Handling: If there are any constraints or dependencies between tables (such as foreign keys), make sure the order of data restoration respects these dependencies, or disable foreign key checks during the data import with:
+
+SET foreign_key_checks = 0;
+
+
+SET foreign_key_checks = 1;
+
+
+-----------------------------------------------------------------------------------------------------------------------------------Step-by-Step Guide to Backup Specific Tables------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+	mysqldump -u [username] -p [database_name] [table1] [table2] ... > [backup_file].sql
+	
+	[username]: Your MySQL username.
+	[database_name]: The name of the database containing the tables you want to back up.
+	[table1] [table2] ...: The names of the tables you want to back up.
+	[backup_file]: The desired name of your backup file.
+
+
+	mysqldump -u root -p exampledb employees departments > tables_backup.sql
+
+Restoring Specific Tables from a Backup
+	
+Ensure the Target Database Exists:
+
+	If the database where you want to restore the tables does not exist, create it first:
+	
+	mysql -u root -p -e "CREATE DATABASE exampledb;"
+
+Restore the Tables:
+
+	mysql -u root -p exampledb < tables_backup.sql
+
+	
+
+
+
