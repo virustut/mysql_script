@@ -1,0 +1,47 @@
+---- query to check the index fregmentation
+
+SELECT
+    table_name,
+    data_free,
+    round((data_free / data_length) * 100, 2) AS fragmentation_percentage
+FROM information_schema.tables
+WHERE table_schema = 'sbivoiceanalytics'
+AND engine = 'InnoDB'
+AND data_free > 0;
+
+
+----- query to check the free data in the table 
+
+SELECT table_name, data_free
+FROM information_schema.tables
+WHERE table_schema = 'sbivoiceanalytics'
+AND table_name = 'calltrans';
+
+
+----- query to check the indexes in table
+
+SHOW INDEX FROM table_name
+
+----OPTIMIZE TABLE
+
+Purpose: Physically reorganizes table data and indexes to improve storage efficiency and query performance.
+
+Usage: Recommended when a table has undergone significant deletions (which leave gaps in data pages) or when there is a noticeable performance degradation.
+
+Effect: Rebuilds the table's data and index pages, reclaiming wasted space and improving data locality for faster access.
+
+OPTIMIZE TABLE your_table_name;
+
+
+
+
+----- ANALYZE TABLE
+
+Purpose: Updates index statistics to improve query performance by providing the optimizer with accurate information about the data distribution.
+
+Usage: Typically used after significant changes to data (inserts, updates, deletes) or to tables that experience high data turnover.
+
+
+ANALYZE TABLE table_name;
+
+

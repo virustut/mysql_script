@@ -1,0 +1,40 @@
+
+
+How to perform PITR 
+
+Suppose if u have a database and suddenly user have mistkely delete the table or data then below is the process to use restore the data with the help of binlog file 
+
+Note : Remember Always bin-log on 
+
+Daily basis takig the database full backup 
+
+if the database size are large then take incremental backup and week day take full backup 
+
+
+Restore the last full backup created point in time you want to recover your database to .
+
+Find the binary log event position that matches the point in time up to which you want to restore your MySql data .
+
+Apply the events in the binary log file to the server starting with the log position you found before .
+
+
+Step to Recover the Point in Time Data  With the help of bin-log log file 
+
+Check the current log file and position 
+
+mysql > show binary logs;
+
+
+--------below command is use to read the log data in between time--------------
+
+ mysqlbinlog --start-datetime="2024-06-21 11:45:01" --stop-datetime="2024-06-21 11:45:14" --verbose /var/lib/mysql/mysql-bin.000014 
+
+-------below command is use to capture the point in time log backup--------
+
+ mysqlbinlog --start-datetime="2024-06-21 11:45:01" --stop-datetime="2024-06-21 11:45:14" --verbose /var/lib/mysql/mysql-bin.000014 > /backup/emp_details_backup.sql
+
+
+
+--------below command is use to restore the log_file of the binlog data--------
+
+ mysql -u Apps -p sakila < /backup/emp_details_backup.sql
