@@ -1,0 +1,51 @@
+Step 1: Update System Packages
+
+sudo yum update
+
+
+Step 2: Download MySQL RPM Package
+
+
+wget https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+
+---Install MySQL RPM Repository: Install the MySQL community repository RPM file to enable installation from the MySQL RPMs.
+
+sudo rpm -ivh mysql80-community-release-el7-3.noarch.rpm
+
+
+Step 3: Install MySQL Server
+-- centos 7
+sudo yum install mysql-community-server
+
+-- centos 8
+
+sudo dnf install mysql-community-server
+
+
+Step 4: Start MySQL Service
+
+sudo systemctl start mysqld
+sudo systemctl enable mysqld
+
+
+Step 5: Secure MySQL Installation
+
+
+sudo mysql_secure_installation
+
+
+
+Step 6: Verify Installation
+
+sudo systemctl status mysqld
+
+
+Step 7: Firewall Configuration (if necessary)
+
+sudo firewall-cmd --zone=public --add-service=mysql --permanent
+sudo firewall-cmd --reload
+
+
+
+
+
