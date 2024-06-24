@@ -1,0 +1,91 @@
+SET GLOBAL event_scheduler = ON;
+
+
+DELIMITER //
+
+CREATE EVENT daily_optimize_all_tables
+ON SCHEDULE EVERY 1 DAY STARTS CURRENT_TIMESTAMP
+DO
+BEGIN
+  DECLARE done INT DEFAULT 0;
+  DECLARE dbName VARCHAR(100);
+  DECLARE tableName VARCHAR(100);
+  DECLARE cur_db CURSOR FOR
+    SELECT schema_name
+    FROM information_schema.schemata
+    WHERE schema_name NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys');
+  
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+  
+  OPEN cur_db;
+  read_db_loop: LOOP
+    FETCH cur_db INTO dbName;
+    IF done THEN
+      LEAVE read_db_loop;
+    END IF;
+    
+    -- Create a cursor to iterate over tables in the current database
+    SET @sql = CONCAT('DECLARE cur_table CURSOR FOR SELECT table_name FROM information_schema.tables WHERE table_schema = ''', dbName, ''' AND table_type = ''BASE TABLE'';');
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    -- Optimize tables in the current database
+    OPEN cur_table;
+    read_table_loop: LOOP
+      FETCH cur_table INTO tableName;
+      IF done THEN
+        LEAVE read_table_loop;
+      END IF;
+      
+      SET @sql_optimize = CONCAT('OPTIMIZE TABLE `', dbName, '`.`', tableName, '`;');
+      PREPARE stmt_optimize FROM @sql_optimize;
+      EXECUTE stmt_optimize;
+      DEALLOCATE PREPARE stmt_optimize;
+    END LOOP;
+    CLOSE cur_table;
+  END LOOP;
+  CLOSE cur_db;
+END //
+
+DELIMITER ;
+
+
+
+
+SHOW EVENTS;
+
+
+
+
+
+Option 2: Using External Scheduler (e.g., cron)
+
+1. Create a Shell Script (optimize_all_tables.sh):
+
+#!/bin/bash
+
+MYSQL_USER="your_username"
+MYSQL_PASSWORD="your_password"
+MYSQL_HOST="localhost"
+
+DATABASES=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "SHOW DATABASES;" | grep -Ev "(Database|information_schema|mysql|performance_schema|sys)")
+
+for db in ${DATABASES}; do
+    TABLES=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -h${MYSQL_HOST} ${db} -e "SHOW TABLES;" | grep -v "Tables_in_${db}")
+    for table in ${TABLES}; do
+        mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -h${MYSQL_HOST} ${db} -e "OPTIMIZE TABLE ${table};"
+    done
+done
+
+2. Make the Script Executable:
+
+chmod +x optimize_all_tables.sh
+
+3. Schedule the Script:
+
+crontab -e
+
+
+0 2 * * * /path/to/optimize_all_tables.sh >/dev/null 2>&1
+

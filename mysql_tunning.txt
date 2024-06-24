@@ -45,3 +45,19 @@ Usage: Typically used after significant changes to data (inserts, updates, delet
 ANALYZE TABLE table_name;
 
 
+------Query to Check Database Sizes
+
+SELECT 
+    table_schema AS `Database`, 
+    SUM(data_length + index_length) / 1024 / 1024 AS `Size_in_MB`
+FROM 
+    information_schema.tables 
+WHERE 
+    table_schema NOT IN ('information_schema', 'mysql', 'performance_schema')
+GROUP BY 
+    table_schema;
+
+
+
+
+

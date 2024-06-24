@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# MySQL connection details
+MYSQL_USER="your_mysql_user"
+MYSQL_PASSWORD="your_mysql_password"
+MYSQL_HOST="localhost"
+BACKUP_DIR="/path/to/backup/directory"
+RETENTION_DAYS=3  # Number of days to retain backups
+
+# Timestamp for backup file
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Create backup directory if it doesn't exist
+mkdir -p $BACKUP_DIR
+
+# Get list of databases, excluding system databases
+DATABASES=$(mysql -u${MYSQL_USER} -p${MYSQL_PASSWORD} -h${MYSQL_HOST} -e "SHOW DATABASES;" | grep -Ev "(Database|information_schema|mysql|performance_schema|sys)")
+
+# Iterate through each database and backup
+for db in $DATABASES; do
+    mysqldump -u${MYSQL_USER} -p${MYSQL_PASSWORD} -h${MYSQL_HOST} --single-transaction --routines --triggers --databases $db > $BACKUP_DIR/${db}_${TIMESTAMP}.sql
+done
+
+# Optionally, compress the backup files
+# tar -czvf $BACKUP_DIR/backup_${TIMESTAMP}.tar.gz $BACKUP_DIR/*.sql
+
+# Delete backups older than retention period (keep last $RETENTION_DAYS days)
+find $BACKUP_DIR -type f -name "*.sql" -mtime +$RETENTION_DAYS -delete
