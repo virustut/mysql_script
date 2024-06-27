@@ -1,0 +1,27 @@
+1. Stop the replica from processing requests. You can stop replication completely on the replica using mysqladmin:
+
+$> mysqladmin stop-slave
+
+2. Alternatively, you can stop only the replication SQL thread to pause event execution:
+
+$> mysql -e 'STOP SLAVE SQL_THREAD;'
+Or from MySQL 8.0.22:
+$> mysql -e 'STOP REPLICA SQL_THREAD;'
+
+
+3. Run mysqldump to dump your databases. You may either dump all databases or select databases to be dumped. For example, to dump all databases:
+
+$> mysqldump --all-databases > fulldb.dump
+
+4. Once the dump has completed, start replication again:
+
+$> mysqladmin start-slave
+
+
+Scenario 1: Backup with a Read-Only Replica
+
+mysql> FLUSH TABLES WITH READ LOCK;
+mysql> SET GLOBAL read_only = ON;
+
+mysql> SET GLOBAL read_only = OFF;
+mysql> UNLOCK TABLES;

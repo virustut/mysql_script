@@ -1,0 +1,27 @@
+$> mysqldump --all-databases --master-data > dbdump.db
+
+	Note
+		If you do not use --master-data, then it is necessary to lock all tables in a separate session manually. See 		Section 2.2.4, “Obtaining the Replication Source Binary Log Coordinates”.
+
+	Exclude all the tables in the database using --ignore-table option.
+
+	Name only those databases which you want dumped using the --databases option.
+
+
+Setting the Source Configuration on the Replica
+
+mysql> CHANGE MASTER TO
+    ->     MASTER_HOST='source_host_name',
+    ->     MASTER_USER='replication_user_name',
+    ->     MASTER_PASSWORD='replication_password',
+    ->     MASTER_LOG_FILE='recorded_log_file_name',
+    ->     MASTER_LOG_POS=recorded_log_position;
+Or from MySQL 8.0.23:
+mysql> CHANGE REPLICATION SOURCE TO
+    ->     SOURCE_HOST='source_host_name',
+    ->     SOURCE_USER='replication_user_name',
+    ->     SOURCE_PASSWORD='replication_password',
+    ->     SOURCE_LOG_FILE='recorded_log_file_name',
+    ->     SOURCE_LOG_POS=recorded_log_position;
+
+
