@@ -1,0 +1,53 @@
+1. SQLServer Manager
+
+
+ Page life expectancy: Indicates how long a data page stays in the buffer cache.
+
+ Buffer cache hit ratio: Shows the percentage of pages found in the buffer cache without having to read from disk.
+
+ Checkpoint pages/sec: Number of pages written to disk by checkpoints.
+
+ Memory Grants Pending: Number of processes waiting for a workspace memory grant.
+
+ Total Server Memory (KB): Total amount of dynamic memory the server is currently consuming.
+
+2. SQLServer Statistics
+
+ Batch Requests/sec: Number of SQL batch requests received per second.
+
+ SQL Compilations/sec: Number of SQL compilations per second.
+
+ SQL Recompilations/sec: Number of SQL recompilations per second.
+
+ User Connections: Number of user connections currently connected to the server.
+
+ Processes blocked: Number of processes blocked.
+
+ Average Latch Wait Time (ms): Average wait time for latch requests that had to wait.
+
+ Wait Time (ms): Total wait time for all types of waits.
+
+3. SQLServer
+
+ Lock Waits/sec: Number of lock requests per second that had to wait.
+
+ Average Wait Time (ms): Average amount of wait time (in milliseconds) for each lock request that had to wait.
+
+4. SQLServer Methods
+
+ Full Scans/sec: Number of full table or index scans per second.
+
+ Page Splits/sec: Number of page splits per second due to overflow in index pages.
+
+5. SQLServer
+
+ Transactions/sec: Number of transactions started for the database per second.
+
+ Log Growths: Number of times the transaction log has been expanded.
+
+6. SQLServer Cache
+
+
+ Cache Hit Ratio: Ratio of cache hits to lookups for the plan cache.
+
+ Total Cache Memory (KB): Total amount of memory used by cache objects in the plan cache.

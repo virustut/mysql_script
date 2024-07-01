@@ -1,0 +1,22 @@
+SELECT 
+    CONCAT(
+        'CREATE TABLE ', 
+        table_name, ' (',
+        GROUP_CONCAT(
+            COLUMN_NAME, ' ', COLUMN_TYPE, 
+            CASE WHEN IS_NULLABLE = 'NO' THEN ' NOT NULL' ELSE ' NULL' END, 
+            COALESCE(CONCAT(' DEFAULT ', COLUMN_DEFAULT), ''),
+            ' ', 
+            COLUMN_COMMENT
+            ORDER BY ORDINAL_POSITION ASC 
+            SEPARATOR ', '
+        ), 
+        ')'
+    ) AS CreateTableStatement
+FROM 
+    INFORMATION_SCHEMA.COLUMNS
+WHERE 
+    table_schema = 'db_name'
+    AND table_name = 'table-name'
+GROUP BY 
+    table_schema, table_name;
