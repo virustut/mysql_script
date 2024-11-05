@@ -1,0 +1,55 @@
+------------------------MYSQL Root Password Changed------------------------
+
+--- 1. Stop the MySQL Service
+--- First, stop the MySQL server to prepare for starting it in safe mode.
+
+--- on linux : 
+	--- sudo systemctl stop mysql
+
+--- on windows : 
+	--- net stop mysql
+
+--- 2. Start MySQL in Safe Mode (Skip Grant Tables)
+
+--- Start MySQL without loading the privilege tables, so you can access it without a password.
+
+	--- sudo mysqld_safe --skip-grant-tables &
+
+--- Note : Alternatively, if mysqld_safe isn’t available, you can try:
+
+	--- sudo mysqld --skip-grant-tables &
+--- 3. Connect to MySQL
+
+--- Open a new terminal window and connect to the MySQL server as the root user:
+
+	--- mysql -u root
+
+--- 4. Reset the Root Password
+
+	--- Once connected, change the root password:
+		
+	/*	USE mysql;
+		UPDATE user SET authentication_string = PASSWORD('NewRootPassword') WHERE User = 'root';
+		FLUSH PRIVILEGES;
+
+		Note : Replace 'NewRootPassword' with your new password.
+	*/
+
+--- 5. Stop and Restart MySQL Normally  ---> Exit the MySQL shell: EXIT
+
+--- Stop the MySQL server running in safe mode:
+
+	--- sudo systemctl stop mysql
+
+--- Start MySQL normally:
+
+	--- sudo systemctl start mysql
+
+
+--- 6. Test the New Root Password
+
+	--- mysql -u root -p
+
+
+
+
