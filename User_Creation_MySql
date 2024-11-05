@@ -1,0 +1,114 @@
+-------------------------------------MySQL CREATE USER Example----------------------------------
+
+--- select user from mysql.user;  
+
+--- mysql> create user peter@localhost identified by 'jtp12345';  
+
+--- Grant Privileges to the MySQL New User
+
+/*
+
+1. ALL PRIVILEGES: It permits all privileges to a new user account.
+2. CREATE: It enables the user account to create databases and tables.
+3. DROP: It enables the user account to drop databases and tables.
+4. DELETE: It enables the user account to delete rows from a specific table.
+5. INSERT: It enables the user account to insert rows into a specific table.
+6. SELECT: It enables the user account to read a database.
+7. UPDATE: It enables the user account to update table rows.
+
+*/
+
+
+--- mysql> GRANT ALL PRIVILEGES ON * . * TO peter@localhost; 
+
+--- mysql> GRANT CREATE, SELECT, INSERT ON * . * TO peter@localhost;  
+
+/* Note : Sometimes, you want to flush all the privileges of a user account for changes occurs immediately, type the following command. */ 
+
+--- FLUSH PRIVILEGES;  
+
+--- If you want to see the existing privileges for the user, execute the following command.
+
+--- mysql> SHOW GRANTS for username;  
+
+----------------------------------MySQL Drop User----------------------------------
+
+--- DROP USER 'account_name';  
+
+--- mysql> select user from mysql.user;  
+
+--- DROP USER martin@localhost;  
+
+----------------------------------MySQL Show Users/List All Users----------------------------------
+
+--- mysql> Select user from mysql.user;  
+
+/*  > mysql -u root -p  
+Enter password: *********  
+mysql> use mysql;  
+Database changed  
+mysql> SELECT user FROM user;  
+
+*/
+
+--- mysql> DESC user;  
+
+--- mysql> SELECT user, host, account_locked, password_expired FROM user;  
+
+
+----------------------------------Show Current User-------------------------------------
+
+/*
+
+mysql> Select user();  
+         or,  
+mysql> Select current_user();  
+
+*/
+
+---------------------------------Show Current Logged User-------------------------------
+
+--- mysql> SELECT user, host, db, command FROM information_schema.processlist;  
+
+
+---------------------------------Change MySQL User Password---------------------------------
+
+--- Change user account password using the UPDATE statement
+
+/*
+mysql> USE mysql;  
+   
+mysql> UPDATE user SET password = PASSWORD('jtp12345') WHERE user = 'peter' AND host = 'localhost';  
+   
+mysql> FLUSH PRIVILEGES;  
+
+*/
+
+--- Note : If you are using the MySQL version 5.7.6 or higher, the above statement will not work. It is because the MySQL user table contains the authentication_string
+
+/*
+
+mysql> USE mysql;  
+   
+mysql> UPDATE user SET authentication_string = PASSWORD('jtp12345') WHERE user = 'peter' AND host = 'localhost';  
+   
+mysql> FLUSH PRIVILEGES; 
+
+*/
+
+--- Change user account password using SET PASSWORD statement
+
+--- mysql> SET PASSWORD FOR 'peter'@'localhost' = PASSWORD('jtp12345');  
+
+--- mysql> SET PASSWORD FOR 'peter'@'localhost' = jtp12345;  
+
+--- Change user account password using ALTER USER statement
+
+--- mysql> ALTER USER peter@localhost IDENTIFIED BY 'jtp123';  
+
+
+
+
+
+
+
