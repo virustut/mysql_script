@@ -196,7 +196,15 @@ Restore the Tables:
 
 	mysql -u root -p exampledb < tables_backup.sql
 
-	
+
+
+--- Table backup with specific range								--dbname      --tblname	
+mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND '2024-11-25'" voiceanalytics calltrans > calltrans_backup.sql
+
+
+----- Restore table data
+mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
