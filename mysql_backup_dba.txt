@@ -111,8 +111,9 @@ What is Binary Log
 	mysqldump -u root -p --no-data exampledb employees > employees_schema.sql
 
 
-
-
+----------------------------------------------------------------------Step-by-Step Guide to Backup store procedure in a database ----------------------------------------------------------
+	mysqldump -u username -p --routines --no-data your_database_name > backup.sql
+	mysql -u username -p your_database_name < backup.sql # put your db where u want to restore that 
 
 ---------------------------------------------------------------------- Backup with different flavour's  only data---------------------------------------------------------------
 
