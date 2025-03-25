@@ -1,14 +1,24 @@
 
 # Check Total RAM Assigned to MySQL
 SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+
 SELECT @@innodb_buffer_pool_size / 1024 / 1024 AS Buffer_Pool_MB;
 
 #  Convert innodb_buffer_pool_size to MB & GB
+
 SELECT 
     @@innodb_buffer_pool_size AS Bytes, 
     @@innodb_buffer_pool_size / 1024 / 1024 AS MB, 
     @@innodb_buffer_pool_size / 1024 / 1024 / 1024 AS GB;
 
+# Check Total Memory Usage of MySQL
+
+SELECT 
+    variable_value AS Total_Memory_Bytes,
+    ROUND(variable_value / 1024 / 1024, 2) AS Total_Memory_MB,
+    ROUND(variable_value / 1024 / 1024 / 1024, 2) AS Total_Memory_GB
+FROM performance_schema.global_status 
+WHERE variable_name = 'Innodb_buffer_pool_bytes_data';
 
 
 # Check MySQL Key Buffer Size (For MyISAM Tables)
@@ -29,6 +39,16 @@ SELECT
     @@query_cache_size AS Bytes, 
     @@query_cache_size / 1024 / 1024 AS MB, 
     @@query_cache_size / 1024 / 1024 / 1024 AS GB;
+
+#  Check How Much Memory is Cached by MySQL
+
+SHOW STATUS LIKE 'Innodb_buffer_pool_pages_data';
+
+# Convert to MB
+SELECT 
+    (variable_value * 16 * 1024) / 1024 / 1024 AS Cached_Memory_MB
+FROM performance_schema.global_status 
+WHERE variable_name = 'Innodb_buffer_pool_pages_data';
 
 
 # Check Temporary Table Cache Size
