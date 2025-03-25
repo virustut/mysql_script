@@ -1,0 +1,77 @@
+						Mysql Configuration After installation 
+
+1. MySQL Configuration File Location
+·  On Linux: /etc/my.cnf or /etc/mysql/my.cnf
+·  On Windows: C:\ProgramData\MySQL\MySQL Server x.x\my.ini
+
+2.Key Configuration Parameters
+
+3.Edit the MySQL configuration file (my.cnf or my.ini) and set:
+
+4.Memory Settings (Important for Performance)
+
+[mysqld]
+# Set InnoDB Buffer Pool (Recommended: 60-70% of total RAM)
+innodb_buffer_pool_size = 16G  
+
+# Set Log File Size (25% of buffer pool size)
+innodb_log_file_size = 4G  
+
+# Enable Read-Ahead for Better Performance
+innodb_read_io_threads = 8
+innodb_write_io_threads = 8
+
+# Query Cache (MySQL 5.7 only; removed in MySQL 8)
+query_cache_type = 0
+query_cache_size = 0
+Storage & Logging Configuration
+
+# Binary Logs (For Replication & Point-in-Time Recovery)
+log_bin = mysql-bin
+max_binlog_size = 500M
+expire_logs_days = 7
+
+# Slow Query Log (Identify Slow Queries)
+slow_query_log = 1
+long_query_time = 2
+log_output = FILE
+
+# Connections & Thread Settings
+# Maximum Concurrent Connections
+max_connections = 500  
+
+# Thread Pool for Efficient Connection Handling
+ thread_cache_size = 64
+
+# Performance Optimization
+# Table Open Cache
+table_open_cache = 4000  
+
+# Adjust Join Buffer for Large Queries
+join_buffer_size = 512K  
+
+# Temporary Table Memory Limit
+tmp_table_size = 128M  
+max_heap_table_size = 128M  
+
+# Optimize Sort Buffers for Large Sorts
+sort_buffer_size = 4M  
+
+# Enable Asynchronous I/O
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+
+3. Steps After Configuration
+
+Restart MySQL for Changes to Apply
+sudo systemctl restart mysql  # Linux
+net stop mysql && net start mysql  # Windows
+Verify Configuration
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+SHOW VARIABLES LIKE 'max_connections';
+Monitor Performance
+SHOW GLOBAL STATUS LIKE 'Threads_connected';
+SHOW GLOBAL STATUS LIKE 'Innodb_buffer_pool_reads';
+
+
+ 
