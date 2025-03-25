@@ -1,0 +1,137 @@
+
+# Check Total RAM Assigned to MySQL
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+SELECT @@innodb_buffer_pool_size / 1024 / 1024 AS Buffer_Pool_MB;
+
+#  Convert innodb_buffer_pool_size to MB & GB
+SELECT 
+    @@innodb_buffer_pool_size AS Bytes, 
+    @@innodb_buffer_pool_size / 1024 / 1024 AS MB, 
+    @@innodb_buffer_pool_size / 1024 / 1024 / 1024 AS GB;
+
+
+
+# Check MySQL Key Buffer Size (For MyISAM Tables)
+SHOW VARIABLES LIKE 'key_buffer_size';
+
+# Convert key_buffer_size to MB & GB
+SELECT 
+    @@key_buffer_size AS Bytes, 
+    @@key_buffer_size / 1024 / 1024 AS MB, 
+    @@key_buffer_size / 1024 / 1024 / 1024 AS GB;
+
+
+#  Check Query Cache Size
+SHOW VARIABLES LIKE 'query_cache_size';
+
+# Convert query_cache_size to MB & GB
+SELECT 
+    @@query_cache_size AS Bytes, 
+    @@query_cache_size / 1024 / 1024 AS MB, 
+    @@query_cache_size / 1024 / 1024 / 1024 AS GB;
+
+
+# Check Temporary Table Cache Size
+SHOW VARIABLES LIKE 'tmp_table_size';
+
+#  Check Total Memory Usage by MySQL
+SELECT 
+    ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS Total_DB_Size_MB
+FROM information_schema.tables;
+
+SHOW VARIABLES LIKE 'max_heap_table_size';
+
+# Check All Important MySQL Memory Settings at Once
+SHOW VARIABLES WHERE Variable_name LIKE '%buffer%' 
+   OR Variable_name LIKE '%cache%' 
+   OR Variable_name LIKE '%memory%';
+
+
+	
+# Convert All Buffer & Cache Sizes in One Query
+SELECT 
+    'innodb_buffer_pool_size' AS Variable, @@innodb_buffer_pool_size / 1024 / 1024 AS MB
+UNION ALL
+SELECT 'key_buffer_size', @@key_buffer_size / 1024 / 1024
+UNION ALL
+SELECT 'query_cache_size', @@query_cache_size / 1024 / 1024
+UNION ALL
+SELECT 'tmp_table_size', @@tmp_table_size / 1024 / 1024
+UNION ALL
+SELECT 'max_heap_table_size', @@max_heap_table_size / 1024 / 1024;
+
+
+# If i want to assing a system configuration variable 
+
+# Configure InnoDB Buffer Pool (For InnoDB Tables)  => Increase InnoDB Buffer Pool Size (Recommended: 60-70% of total RAM)
+SET GLOBAL innodb_buffer_pool_size = 4G;
+
+# This assigns 4GB for caching InnoDB data & indexes.
+# To make it permanent, add this to my.cnf or my.ini:
+# [mysqld]
+# innodb_buffer_pool_size = 4G
+
+
+# Configure Key Buffer (For MyISAM Indexes)
+# The Key Buffer is used for caching MyISAM table indexes.
+
+# Increase Key Buffer Size (Recommended: 25-30% of total RAM if using MyISAM)
+SET GLOBAL key_buffer_size = 512M; # To make it permanent, add it to my.cnf or my.ini:
+# [mysqld]
+# key_buffer_size = 512M
+
+# Configure Query Cache (For Caching Query Results)
+
+# ⚠️ Query Cache is removed in MySQL 8.0 (use ProxySQL or Memcached instead).
+
+SET GLOBAL query_cache_size = 128M;
+SET GLOBAL query_cache_limit = 4M;
+
+# mysqld]  add into my.cnf file 
+# query_cache_size = 128M
+# query_cache_limit = 4M
+
+# Configure Temporary Table Size (For In-Memory Tables)
+
+#  Increase Temporary Table Size (Recommended: 256M - 1G)
+
+SET GLOBAL tmp_table_size = 256M;
+SET GLOBAL max_heap_table_size = 256M;
+
+#  Add to my.cnf or my.ini:
+# [mysqld]
+# tmp_table_size = 256M
+# max_heap_table_size = 256M
+
+# Configure Table Open Cache (To Improve Performance)
+
+# Increase Table Cache (Recommended: 4000-8000)
+SET GLOBAL table_open_cache = 5000;
+
+#Add to my.cnf or my.ini:
+
+# [mysqld]
+# table_open_cache = 5000
+
+# Final Steps
+# Apply changes immediately:
+FLUSH PRIVILEGES;
+
+# Restart MySQL service for my.cnf or my.ini changes to take effect:
+
+# sudo systemctl restart mysql  # For Linux
+# net stop MySQL && net start MySQL  # For Windows
+
+
+
+
+
+
+
+
+
+
+
+
+
+
