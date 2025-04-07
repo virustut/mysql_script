@@ -18,6 +18,8 @@
 --- Note : Alternatively, if mysqld_safe isn’t available, you can try:
 
 	--- sudo mysqld --skip-grant-tables &
+  ----  mysqld --skip-grant-tables --datadir="D:\MyCustomDataDir"  ----if our data directory in different location 
+
 --- 3. Connect to MySQL
 
 --- Open a new terminal window and connect to the MySQL server as the root user:
