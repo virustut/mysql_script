@@ -74,4 +74,59 @@ Slave_IO_Running: Yes
 
 Slave_SQL_Running: Yes
 
+Note : if server_uuid error in linux or winodow u find solution below 
+
+
+Solution: Change the server_uuid on the Replica
+	
+Step 1: Locate the auto.cnf file
+The UUID is stored in a file called auto.cnf, typically located in the MySQL data directory (/var/lib/mysql/auto.cnf on Linux).
+
+Step 2: Stop MySQL on the replica
+
+
+sudo systemctl stop mysql
+# or
+sudo service mysql stop
+
+
+Step 3: Remove the auto.cnf file
+
+sudo rm /var/lib/mysql/auto.cnf
+
+
+Step 4: Start MySQL again
+
+sudo systemctl start mysql
+# or
+sudo service mysql start
+
+
+ Optional: Confirm UUID Change
+
+SELECT @@server_uuid;
+
+-------------in windows-------
+ Steps Recap (on the Replica Server):
+Stop MySQL service
+
+cmd
+
+net stop MySQL
+Delete auto.cnf
+
+Go to: C:\ProgramData\MySQL\MySQL Server X.X\data\
+
+Delete: auto.cnf
+
+Start MySQL service
+
+cmd
+
+net start MySQL
+Check new UUID
+
+sql
+
+SELECT @@server_uuid;
 	
