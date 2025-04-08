@@ -1,0 +1,77 @@
+
+-------------------------Replication with the same hostname---------------------------------
+1. Configure the confi file
+
+ Master (e.g., port 3307):
+
+[mysqld]
+server-id=1
+port=3306
+log-bin=mysql-bin
+bind-address=127.0.0.1
+
+
+
+Slave (e.g., port 3308):
+
+[mysqld]
+server-id=2
+port=3308
+relay-log=relay-log
+bind-address=127.0.0.1
+
+Restart both instances after updating configs.
+
+2.  Create Replication User on Master
+
+Log in to the master (3307):
+
+CREATE USER 'replica'@'127.0.0.1' IDENTIFIED BY 'yourpassword';
+GRANT REPLICATION SLAVE ON *.* TO 'replica'@'127.0.0.1';
+FLUSH PRIVILEGES;
+
+3. Check Binary Log Position
+
+Still on the master, run:
+
+FLUSH TABLES WITH READ LOCK;
+SHOW MASTER STATUS;  ----> Note down the binlogfile and binlog position 
+
+
+ Note : Leave the session open with the lock if you're copying data manually.
+
+
+4. Export DB from Master (optional)
+
+mysqldump -u root -p --port=3306 --all-databases --master-data > dump.sql
+
+
+5. Restore the slave server
+
+mysql -u root -p --port=3307 < dump.sql
+
+6. Configure Slave
+
+STOP SLAVE;
+
+CHANGE MASTER TO 
+  MASTER_HOST='127.0.0.1',
+  MASTER_PORT=3307,
+  MASTER_USER='replica',
+  MASTER_PASSWORD='yourpassword',
+  MASTER_LOG_FILE='mysql-bin.000001',
+  MASTER_LOG_POS=154;
+
+START SLAVE;
+
+7. Verify Replication on slave server 
+
+SHOW SLAVE STATUS\G
+
+Look for:
+
+Slave_IO_Running: Yes
+
+Slave_SQL_Running: Yes
+
+	
