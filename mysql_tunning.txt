@@ -57,6 +57,22 @@ WHERE
 GROUP BY 
     table_schema;
 
+---- in Explain select * From table name # the out put query reporesent's 
+
+| Column             | Meaning                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| **id**             | `1` means this is the first (and only) query in your plan (not a subquery or UNION). |
+| **select\_type**   | `SIMPLE` means it's a basic `SELECT` without subqueries or UNIONs.                   |
+| **table**          | The table being accessed: `contacts`.                                                |
+| **partitions**     | `NULL` means no partitioning is used (or applicable).                                |
+| **type**           | `ALL` is the **worst** join type — it means a **full table scan**.                   |
+| **possible\_keys** | `NULL` — there are **no indexes** that MySQL considers useful for this query.        |
+| **key**            | `NULL` — **no index is used**.                                                       |
+| **key\_len**       | `NULL` — no index is chosen, so this is blank.                                       |
+| **ref**            | `NULL` — no reference column, since there's no index.                                |
+| **rows**           | `216` — MySQL estimates it will scan 216 rows.                                       |
+| **filtered**       | `29.76` — About 29.76% of those rows will pass the `WHERE` condition.                |
+| **Extra**          | `Using where` — MySQL is filtering rows with your `WHERE` clause.                    |
 
 
 
