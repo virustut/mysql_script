@@ -75,5 +75,19 @@ GROUP BY
 | **Extra**          | `Using where` — MySQL is filtering rows with your `WHERE` clause.                    |
 
 
+# How MySQL Uses Composite Indexes
+create index idx_chat on chat_history(user_id,agent_id, contact_id,created_date)
+
+| WHERE Clause                                            | Will Use Index?                         |
+| ------------------------------------------------------- | --------------------------------------- |
+| `WHERE user_id = ?`                                     | ✅ Yes                                   |
+| `WHERE user_id = ? AND agent_id = ?`                    | ✅ Yes                                   |
+| `WHERE user_id = ? AND agent_id = ? AND contact_id = ?` | ✅ Yes                                   |
+| `WHERE user_id = ? AND created_date = ?`                | ❌ No (skipped `agent_id`, `contact_id`) |
+| `WHERE created_date BETWEEN ...`                        | ❌ No                                    |
+| `WHERE agent_id = ?`                                    | ❌ No                                    |
+
+
+
 
 
