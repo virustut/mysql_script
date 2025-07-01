@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MySQL Configuration Tuning Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h1, h2 {
+            color: #005b96;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li::before {
+            content: "✔️ ";
+            color: green;
+            margin-right: 6px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #ffffff;
+            border-left: 5px solid #005b96;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #fff;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #005b96;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>MySQL Configuration Tuning & Checklist</h1>
+
+    <div class="section">
+        <h2>1. Tuning Recommendations</h2>
+        <ul>
+            <li>Set <code>innodb_buffer_pool_size</code> to 60–70% of total RAM on dedicated servers.</li>
+            <li>Use multiple <code>innodb_buffer_pool_instances</code> if buffer pool size > 1GB.</li>
+            <li>Enable <code>innodb_file_per_table</code> for better table space management.</li>
+            <li>Adjust <code>max_connections</code> based on actual connection usage.</li>
+            <li>Set <code>innodb_flush_log_at_trx_commit = 2</code> for better performance (less durability).</li>
+            <li>Use <code>skip-name-resolve</code> to avoid DNS lookups.</li>
+            <li>Set <code>query_cache_size = 0</code> in MySQL 5.7+.</li>
+            <li>Use <code>slow_query_log</code> and <code>long_query_time</code> to identify slow queries.</li>
+            <li>Use <code>binlog_format = ROW</code> for safer replication.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Configuration Checklist</h2>
+        <ul>
+            <li>Backups enabled and tested (mysqldump or physical backup).</li>
+            <li>Binary logging enabled if replication or point-in-time recovery needed.</li>
+            <li>Unique <code>server_id</code> set for replication.</li>
+            <li>MySQL error log and slow query log location configured.</li>
+            <li>Adequate <code>open_files_limit</code> and <code>table_open_cache</code> set.</li>
+            <li>Secure root access and <code>validate_password_policy</code> enforced.</li>
+            <li><code>secure_file_priv</code> configured if <code>LOAD DATA</code> or <code>SELECT INTO OUTFILE</code> is used.</li>
+            <li>Character set and collation set globally (utf8mb4 recommended).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Advanced Configuration Parameters</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>innodb_io_capacity</td><td>Set to 100–200 for HDDs or 1000+ for SSDs.</td></tr>
+                <tr><td>innodb_thread_concurrency</td><td>Controls number of concurrent threads in InnoDB.</td></tr>
+                <tr><td>tmp_table_size / max_heap_table_size</td><td>Increase to reduce disk-based temp tables.</td></tr>
+                <tr><td>join_buffer_size</td><td>Used for joins that lack indexes.</td></tr>
+                <tr><td>sort_buffer_size</td><td>Buffer size for sort operations (ORDER BY, GROUP BY).</td></tr>
+                <tr><td>read_rnd_buffer_size</td><td>Used during ORDER BY after sort buffer is used.</td></tr>
+                <tr><td>key_buffer_size</td><td>Used only for MyISAM tables.</td></tr>
+                <tr><td>performance_schema</td><td>Enable for profiling and monitoring performance.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
