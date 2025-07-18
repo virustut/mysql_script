@@ -1,0 +1,123 @@
+# Install MySQL on Windows
+
+1. Download MySQL Installer
+Go to: https://dev.mysql.com/downloads/installer/
+
+Choose MySQL Installer for Windows (full or web)
+
+2. Run the Installer
+Select “Server Only” or “Developer Default” setup
+
+Click Next
+
+3. Check for Requirements
+Installer may download missing packages (Visual C++ Redistributable, etc.)
+
+4. Configure MySQL Server
+Choose version (MySQL 8.0.x)
+
+Configure:
+
+Port: 3306 (default)
+
+Authentication: Use strong password
+
+Accounts: Set root password and optionally add other users
+
+5. Set as Windows Service
+Enable “Start MySQL Server at system startup”
+
+6. Apply Configuration
+Installer applies all changes and starts MySQL service
+
+7. (Optional) Install MySQL Workbench
+GUI for managing and querying your databases
+
+
+
+Install MySQL on Linux
+
+✅ Ubuntu / Debian
+1. Update Packages
+sudo apt update
+sudo apt upgrade -y
+
+2. Install MySQL Server
+sudo apt install mysql-server -y
+
+3. Secure Installation
+sudo mysql_secure_installation
+
+Set root password
+Remove anonymous users
+Disable remote root login (if needed)
+Remove test database
+Reload privilege tables
+
+4. Start & Enable MySQL
+sudo systemctl start mysql
+sudo systemctl enable mysql
+
+5. Login to MySQL
+sudo mysql -u root -p
+
+✅ CentOS / RHEL / AlmaLinux
+1. Add MySQL Yum Repo
+sudo yum install https://dev.mysql.com/get/mysql80-community-release-el8-1.noarch.rpm
+
+2. Install MySQL Server
+sudo yum install mysql-server -y
+
+3. Start & Enable MySQL
+sudo systemctl start mysqld
+sudo systemctl enable mysqld
+
+4. Find Temporary Root Password
+sudo grep 'temporary password' /var/log/mysqld.log
+
+5. Secure Installation
+sudo mysql_secure_installation
+
+6. Login to MySQL
+mysql -u root -p
+
+
+Configure the mysql memory 
+
+
+
+# --- Configuration (my.cnf or my.ini)
+# For Linux: /etc/my.cnf or /etc/mysql/my.cnf
+# For Windows: my.ini under MySQL install directory
+
+[mysqld]
+# Shared memory
+innodb_buffer_pool_size = 2G
+key_buffer_size = 64M
+
+# Per-connection memory
+sort_buffer_size = 2M
+read_buffer_size = 1M
+join_buffer_size = 1M
+tmp_table_size = 64M
+max_connections = 100
+
+Note : After editing the config file, restart MySQL:
+Linux : sudo systemctl restart mysql
+Windows : net stop mysql
+          net start mysql
+
+Note : Check the current value
+      SHOW VARIABLES LIKE '%buffer%';
+      SHOW VARIABLES LIKE 'max_connections';
+
+Note : 1. Global Buffers (Shared Memory)
+          Allocated once, and used by all connections:
+
+| Setting                   | Description                             | Typical value                                    |
+| ------------------------- | --------------------------------------- | ------------------------------------------------ |
+| `innodb_buffer_pool_size` | Main memory for InnoDB data and indexes | 60–80% of total RAM (for dedicated MySQL server) |
+| `key_buffer_size`         | Used by MyISAM tables (less common)     | Small unless using MyISAM                        |
+| `query_cache_size`        | Usually 0 in MySQL 8 (deprecated)       | 0                                                |
+
+
