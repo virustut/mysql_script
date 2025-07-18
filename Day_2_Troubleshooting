@@ -1,0 +1,74 @@
+# Best Monitoring Tools for MySQL
+
+Percona Monitoring and Management (PMM) – Open Source
+Best Free MySQL Monitor
+
+Real-time graphs (CPU, InnoDB, queries, replication)
+
+Query analytics (like slow query logs)
+
+Integrates with Grafana & Prometheus
+
+🔗 https://www.percona.com/software/database-tools/percona-monitoring-and-management
+
+# How to Troubleshoot Common MySQL Issues
+1. Slow Queries
+   Enable slow query log:
+
+SET GLOBAL slow_query_log = 1;
+SET GLOBAL long_query_time = 2;
+
+Analyze log:
+  Use mysqldumpslow or pt-query-digest (from Percona Toolkit)
+    pt-query-digest /var/log/mysql/mysql-slow.log
+
+2. High CPU / Memory Usage
+  a) Run SHOW PROCESSLIST to check long-running queries
+  b) Check INFORMATION_SCHEMA.PROCESSLIST for more detailed view
+  c) Use top, htop, or Task Manager (Windows) to inspect system
+
+3. Locking / Deadlocks
+  a) SHOW ENGINE INNODB STATUS\G
+    ---> Look for LATEST DETECTED DEADLOCK.
+
+4. Connection Issues
+  SHOW VARIABLES LIKE 'max_connections';
+  SHOW STATUS LIKE 'Threads_connected';
+
+  SET GLOBAL max_connections = 500;
+
+ 5. Replication Problems
+
+    SHOW SLAVE STATUS\G
+Note : Look for Seconds_Behind_Master, Last_IO_Error, etc.
+
+RESET SLAVE; and reconfigure if replication broken
+
+6. Disk Space / I/O
+  SHOW TABLE STATUS;
+  SHOW ENGINE INNODB STATUS\G
+
+  Monitor /var/lib/mysql size
+  Use tools like iostat, iotop, df -h
+
+ 7. Corruption / Crashes
+  CHECK TABLE your_table;
+  ANALYZE TABLE your_table;
+
+For MySQL, use: --dbcc command
+  mysqlcheck -u root -p --all-databases --check --auto-repair
+
+Syntax for Checking a Single Database
+  mysqlcheck -u root -p your_database_name --check --auto-repair
+
+You can also specify specific tables:
+  mysqlcheck -u root -p your_database your_table --check --auto-repair
+
+Note : ⚠️ Warning: Do not leave passwords in plain text in production scripts.
+
+
+
+
+
+
+  
