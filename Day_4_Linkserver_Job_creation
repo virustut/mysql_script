@@ -1,0 +1,119 @@
+# Link Server Creation in MYSQL
+
+1. FEDERATED Storage Engine
+MySQL has a FEDERATED storage engine that lets you create a table on one server that actually points to a table on a remote MySQL server.
+
+You can query the remote table almost like a local one.
+
+How to use FEDERATED:
+The FEDERATED engine must be enabled on your MySQL server (not always enabled by default).
+
+CREATE TABLE federated_table (
+  id INT(20) NOT NULL AUTO_INCREMENT,
+  name VARCHAR(32) NOT NULL DEFAULT '',
+  other_column VARCHAR(255) NOT NULL DEFAULT '',
+  PRIMARY KEY (id)
+)
+ENGINE=FEDERATED
+CONNECTION='mysql://user:password@remote_host:3306/remote_db/remote_table';
+
+Note : After this, federated_table on your local server acts as a proxy to the remote table.
+
+⚠️ Limitations of FEDERATED:
+No transaction support
+
+Performance can be slow (network latency)
+
+Only supports SELECT, INSERT, UPDATE, DELETE on remote table
+
+#######----How to Schedule a Job in MySQL Using Event Scheduler----#######
+
+1. Enable Event Scheduler
+First, make sure the event scheduler is ON:
+
+SHOW VARIABLES LIKE 'event_scheduler';
+
+If it’s OFF, enable it:
+SET GLOBAL event_scheduler = ON;
+
+Or add this line to your MySQL config file (my.cnf or my.ini) to make it permanent:
+
+[mysqld]
+event_scheduler=ON
+
+
+2. Create an Event
+CREATE EVENT event_name
+ON SCHEDULE schedule
+DO
+    event_body;
+
+3. Examples
+Example 1: Run a query once, 5 minutes from now
+
+CREATE EVENT my_one_time_event
+ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 5 MINUTE
+DO
+  UPDATE employees SET salary = salary * 1.05 WHERE department = 'Sales';
+
+
+Example 2: Run a query every day at midnight
+
+CREATE EVENT daily_salary_bonus
+ON SCHEDULE EVERY 1 DAY
+STARTS '2025-07-19 00:00:00'
+DO
+  UPDATE employees SET salary = salary + 500 WHERE department = 'Marketing';
+
+Example 3: Run every hour
+  CREATE EVENT hourly_cleanup
+ON SCHEDULE EVERY 1 HOUR
+DO
+  DELETE FROM logs WHERE log_date < NOW() - INTERVAL 30 DAY;
+
+4. View Events
+SHOW EVENTS;
+
+5. Alter an Event
+ALTER EVENT event_name
+ON SCHEDULE EVERY 2 DAY;
+
+6. Drop an Event
+DROP EVENT event_name;
+
+7. Permissions
+SHOW GRANTS FOR CURRENT_USER();
+
+| Step             | Command Example                                       |
+| ---------------- | ----------------------------------------------------- |
+| Enable scheduler | `SET GLOBAL event_scheduler = ON;`                    |
+| Create event     | `CREATE EVENT ev_name ON SCHEDULE EVERY 1 DAY DO ...` |
+| Show events      | `SHOW EVENTS;`                                        |
+| Alter event      | `ALTER EVENT ev_name ON SCHEDULE ...;`                |
+| Drop event       | `DROP EVENT ev_name;`                                 |
+
+
+
+EXAMPE : 
+ Example 1: Delete old logs every night at 1 AM
+
+CREATE EVENT delete_old_logs
+ON SCHEDULE EVERY 1 DAY
+STARTS TIMESTAMP(CURRENT_DATE, '01:00:00')  -- Starts at 1 AM today
+DO
+  DELETE FROM logs WHERE created_at < NOW() - INTERVAL 30 DAY;
+
+
+Example 2: Archive data from orders to orders_archive weekly
+
+CREATE EVENT weekly_archive_orders
+ON SCHEDULE EVERY 1 WEEK
+STARTS '2025-07-21 02:00:00'
+DO
+  BEGIN
+    INSERT INTO orders_archive
+    SELECT * FROM orders WHERE order_date < NOW() - INTERVAL 7 DAY;
+    
+    DELETE FROM orders WHERE order_date < NOW() - INTERVAL 7 DAY;
+  END;
+
