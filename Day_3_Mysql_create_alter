@@ -1,0 +1,146 @@
+# 1. Create Database & Table
+-- Create a database
+CREATE DATABASE company;
+
+-- Use the database
+USE company;
+
+-- Create a table
+CREATE TABLE employees (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    salary DECIMAL(10,2),
+    hire_date DATE
+);
+
+# 2. Insert Data
+INSERT INTO employees (name, email, salary, hire_date)
+VALUES 
+('Alice Smith', 'alice@example.com', 55000.00, '2022-01-15'),
+('Bob Johnson', 'bob@example.com', 60000.00, '2023-03-01');
+
+# 3. Update Data
+-- Give Bob a raise
+UPDATE employees
+SET salary = 65000.00
+WHERE name = 'Bob Johnson';
+
+# 4. Delete Data
+-- Remove Alice from the table
+DELETE FROM employees
+WHERE name = 'Alice Smith';
+
+# 5. ALTER TABLE
+ALTER TABLE employees
+ADD COLUMN department VARCHAR(50);
+
+# Modify Column Data Type
+-- Change 'salary' from DECIMAL(10,2) to BIGINT
+ALTER TABLE employees
+MODIFY COLUMN salary BIGINT;
+
+# Rename a Column (MySQL 8+)
+ALTER TABLE employees
+RENAME COLUMN name TO full_name;
+
+# Change Column Name and Type Together
+ALTER TABLE employees
+CHANGE COLUMN email work_email VARCHAR(150);
+
+# Drop a Column
+ALTER TABLE employees
+DROP COLUMN department;
+
+# 6. Select Data
+-- Get all employees
+SELECT * FROM employees;
+
+-- Get employees hired after 2023
+SELECT full_name, hire_date 
+FROM employees
+WHERE hire_date > '2023-01-01';
+
+# Bonus: Table Structure & Description
+-- Show table structure
+DESCRIBE employees;
+
+-- More detailed info
+SHOW CREATE TABLE employees;
+
+# 1. Copy Structure Only (Empty Table)
+
+CREATE TABLE new_table LIKE original_table;
+Note : This copies columns, indexes, and structure, but no data.
+
+# 2. Copy Structure + Data
+CREATE TABLE new_table AS
+SELECT * FROM original_table;
+
+Note : This copies columns and data, but does not copy indexes, primary keys, or constraints.
+⚠️ Use this method if you only care about data, not keys or structure.
+
+# 3. Copy Only Some Rows (Filtered Copy)
+CREATE TABLE new_table AS
+SELECT * FROM original_table
+WHERE hire_date > '2023-01-01';
+
+Creates and fills new_table with selected rows.
+# 4. Copy Data Only (to Existing Table)
+If new_table already exists (with same column structure):
+INSERT INTO new_table
+SELECT * FROM original_table;
+
+You can also insert selected columns:
+
+INSERT INTO new_table (name, salary)
+SELECT name, salary FROM original_table;
+
+#  Summary of Use Cases
+| Goal                        | Query Example                                           |
+| --------------------------- | ------------------------------------------------------- |
+| Copy structure only         | `CREATE TABLE new LIKE original;`                       |
+| Copy structure + data       | `CREATE TABLE new AS SELECT * FROM original;`           |
+| Copy filtered data          | `CREATE TABLE new AS SELECT * FROM original WHERE ...;` |
+| Copy data to existing table | `INSERT INTO new SELECT * FROM original;`               |
+
+#################Option 1: Use mysqldump to Clone the Table#################
+
+1. Dump the table structure and data:
+
+mysqldump -u root -p your_database original_table > table_backup.sql
+
+2. Edit the SQL file (optional):
+Open table_backup.sql
+Rename the table (e.g., change CREATE TABLE original_table to CREATE TABLE new_table)
+Or use sed on Linux:
+
+sed 's/original_table/new_table/g' table_backup.sql > table_clone.sql
+
+3. Import the new table into the same (or another) database:
+mysql -u root -p your_database < table_clone.sql
+
+Note : Result: Full copy of the table, including indexes, foreign keys, and triggers.
+
+#################Option 2: Manual SQL Copy (Structure + Indexes)#################
+
+Step 1: Copy structure with indexes
+CREATE TABLE new_table LIKE original_table;
+
+Step 2: Copy data
+INSERT INTO new_table SELECT * FROM original_table;   --- Note :  This also copies indexes (including primary keys), but not foreign keys or triggers.
+
+ #################Option 3: Copy Triggers Manually#################
+
+SHOW TRIGGERS FROM your_database WHERE `Table` = 'original_table';
+
+
+
+
+
+
+
+
+
+
+
