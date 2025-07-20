@@ -1,0 +1,276 @@
+### Steps to creat a replication 
+
+C:\PorgramData\MySQL\MySQL Server 8.0\my.ini
+
+Enable Binary Logging:
+Under the [mysqld] section, add or modify:
+
+server-id=1
+log_bin=mysql-bin
+binlog_format =ROW
+
+The server-id must be unique (use 1 for master)
+binlog_format=ROW ensures compatibility for transcation replication 
+
+Restart MySQL Services:
+Open Command Prompt as Administrator.
+Run:
+
+net stop MySQL80
+net start MySQL80
+
+Create a Replication User:
+Open MySQL Workbench or Command Prompt and connect to MySQL:
+
+
+MySQL -u root -p 
+
+Enter password :
+
+--- Create the replication user for the correct IP(Slave server)
+CREATE USER 'replication_user'@'slave_server_ip' identified with mysql_native_password BY 'admin@123';
+
+--- Grant Replication  slave privilege to that specific IP
+GRANT REPLICATION SLAVE ON *.* TO 'replication_user'@'slave_server_ip';
+GRANT REPLICATION CLIENT ON *.* TO 'replication_user'@'10.0.0.4';
+FLUSH PRIVILEGES;
+
+a
+DROP USER IF EXISTS 'replication_user'@'10.0.0.4';
+
+CREATE USER 'replication_user'@'10.0.0.4' IDENTIFIED WITH mysql_native_password BY 'admin@123';
+
+GRANT REPLICATION SLAVE ON *.* TO 'replication_user'@'10.0.0.4';
+
+FLUSH PRIVILEGES;
+
+
+
+--- Apply the changes 
+FLUSH PRIVILEGES;
+
+This creates a user for replication with the necessary permissions.
+
+Get Master Binary Log Coordinates:
+
+In MySQL , run :
+
+mysql> SHOW MASTER STATUS;
+mysql>  SHOW BINARY LOG STATUS;
+
+SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE '%password%';
+
+
+Note the file (e.g., mysql-bin.00001) and Position (e.g., 1510). These will be used on the Slave.
+
+Step 4: Configure MySQL on Slave(192.168.0.0)
+
+Locate the Configuration file:
+
+Open my.ini at 
+C:\ProgramData\MySQL\MySQL Server 8.0\my.ini
+
+Set Unique Server ID:
+Under the [mysqld] section , add:
+
+server-id=2
+log_bin=mysql-bin
+read_only=ON
+
+Use server-id=2 to differentiate from the master.
+read_only=ON ensures the Slave is not modified directly.
+
+INSTALL PLUGIN mysql_native_password SONAME 'mysql_native_password.dll';
+
+
+Restart MySQL Service:
+Run:
+
+net stop MySQL80
+net start MySQL80
+
+Configure Slave to Connect to Master:
+Connect to MySQL on the Slave:
+
+MySQL -u root -p
+Enter password: admin@123
+
+Execute :
+
+
+
+
+START REPLICA;
+
+SHOW REPLICA STATUS\G;
+Replace MASTER_LOG_FILE AND MASTER_LOG_POS with the values from the Master's SHOW MASTER STATUS.
+
+Run slave command :
+mysql> Start Slave ;
+
+Verify replication status:
+
+SHOW SLAVE STATUS\G
+
+Check Slave_IO_Running and Slave_SQL_Running are both yes . If not , Check Last_IO_Error or Last_SQL_Error for troubleshooting.
+
+Step 5: Configure windows Firewall on Both Servers
+
+Open Windows Firewall settings:
+
+On both servers , open control panel > system and security > windows defender firewall > Advanced Settings.
+
+
+Create Inbound Rule for MySQL Port :
+Click Inbound Rule > New Rule.
+Select Port, then TCP , and specify port 3306
+Allow the connection .
+Apply to all profiles (Domain , Private, public)
+Name the rule (e.g. , Mysql_3306).
+
+Allow specific IP Communication:
+In the rule's properties , go to the Scope tab.
+Under remote IP Address, add:
+on master(192.168.224.131):Allow 192.168.224.132.
+on slave(192.168.224.132): Allow 192.168.224.131.
+
+This restricts MySQL communication to only these servers.
+
+Apply and Test:
+Apply the firewall rules.
+Test connectivity from the Slave to the master:
+
+MySQL -h 192.168.224.131 -u replication_user -p
+
+
+
+STOP REPLICA;
+
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST='10.0.0.3',
+  SOURCE_USER='replica',
+  SOURCE_PASSWORD='admin@123',
+  SOURCE_LOG_FILE='MASTER-bin.000003',
+  SOURCE_LOG_POS=2545;
+
+START REPLICA;
+
+SHOW REPLICA STATUS\G;
+
+#### Trouble shooting replication ####
+
+---- CHECK THE ERROR OF WHY REPLICATION ARE NOT WORKING
+SELECT 
+  WORKER_ID, 
+  LAST_ERROR_MESSAGE, 
+  LAST_ERROR_TIMESTAMP, 
+  LAST_APPLIED_TRANSACTION 
+FROM 
+  performance_schema.replication_applier_status_by_worker\G;
+
+
+
+✅ If You Want Full Resync (Safe Option):
+
+1. Take a fresh dump from master:
+
+mysqldump -u root -p --all-databases --master-data=2 > full_dump.sql
+
+2. Load that dump on the slave:
+
+mysql -u root -p < full_dump.sql
+
+
+Re-run the CHANGE REPLICATION SOURCE TO ... with the correct log file and position.
+
+✅ To Skip One Bad Transaction (if safe):
+
+STOP REPLICA;
+
+SET GLOBAL SQL_SLAVE_SKIP_COUNTER = 1;
+
+START REPLICA;
+
+SHOW REPLICA STATUS\G;
+
+Note : ⚠️ Only skip if you're sure the error won’t break consistency.
+
+# Replication Delay Monitoring Query (for Alerting)
+
+SELECT 
+  NOW() AS current_time,
+  seconds_behind_source 
+FROM 
+  performance_schema.replica_status;
+
+
+#### scenario when my server shutdown how can i stay my replication in sync ####
+
+✅ Before Shutdown – Prepare Properly
+
+🔒 1. Ensure Replication is Working Cleanly
+On the slave, run:
+
+SHOW REPLICA STATUS\G;
+
+Make sure:
+
+Replica_IO_Running: Yes
+
+Replica_SQL_Running: Yes
+
+Seconds_Behind_Source: 0 or small number
+
+No Last_IO_Error or Last_SQL_Error
+
+2. Optional: STOP REPLICA (Safe Option)
+Before you shut down the replica, you can stop replication cleanly:
+STOP REPLICA;
+
+This prevents partial application of binlogs during shutdown.
+
+You can skip this if you want replication to resume automatically.
+
+🔒 3. Shutdown Cleanly
+Now shut down both servers properly (no power cut):
+
+sudo shutdown now
+
+
+✅ After Restart – Restore Replication
+After you boot both servers (Master first, then Slave):
+
+▶️ 1. Start Replication Again (if you stopped it)
+On the slave, run:
+
+START REPLICA;
+
+📋 2. Check Replication Status
+
+SHOW REPLICA STATUS\G;
+
+You want to see:
+
+Replica_IO_Running: Yes
+
+Replica_SQL_Running: Yes
+
+Seconds_Behind_Source: 0 or low
+
+No errors in Last_IO_Error or Last_SQL_Error
+
+
+✅ Optional: Test Sync
+Make a small test change on master:
+
+💡 Tips to Avoid Future Issues
+
+| Tip               | Description                                         |
+| ----------------- | --------------------------------------------------- |
+| Boot Master First | Always start master VM before the slave             |
+| Use GTID          | Helps in auto-resuming even if log position changes |
+| Check Time Sync   | Keep both servers' system clocks in sync (use NTP)  |
+| Watch Disk Space  | Full disk = replication stops                       |
+
+
+
