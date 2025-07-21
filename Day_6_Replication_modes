@@ -1,0 +1,67 @@
+✅ Steps to Replicate Specific Databases
+📍 1. Edit MySQL Configuration on the Replica (my.ini or my.cnf)
+Add the following under the [mysqld] section on the replica:
+
+replicate-do-db=database1
+replicate-do-db=database2
+
+📝 You can repeat replicate-do-db for each database you want to replicate.
+
+
+📌 Important Notes:
+These filters only affect the replica — the master sends everything, but the replica applies only what matches.
+
+Make sure your application uses the correct database explicitly (via USE dbname; or dbname.tablename) in every statement — otherwise filtering may not work as expected.
+
+
+⚠️ Example of Bad Case
+USE database1;
+INSERT INTO table1 VALUES (...);
+
+This may not replicate if filtering is strict.
+Better to do:
+INSERT INTO database1.table1 VALUES (...);
+
+🧪 2. Restart MySQL on the Replica
+After editing the config file:
+
+systemctl restart mysql   # Linux
+net stop mysql && net start mysql   # Windows
+
+🔍 3. Check if It’s Working
+Use on the replica:
+
+SHOW SLAVE STATUS\G
+
+Look for:
+
+Seconds_Behind_Master
+
+No errors in Last_Error
+
+🔄 Alternative: Use CHANGE REPLICATION FILTER (MySQL 8.0.23+)
+
+CHANGE REPLICATION FILTER REPLICATE_DO_DB = (database1, database2);
+
+This dynamically sets replication filters without editing the config file (MySQL 8.0.23 or later).
+
+✅ How to Replicate Only Specific Tables
+You use the replicate-do-table option in the replica (slave) configuration.
+
+🔧 Step-by-Step
+1. Edit MySQL Config File on the Replica
+On Windows, this is typically my.ini.
+On Linux, it’s usually /etc/my.cnf or /etc/mysql/my.cnf.
+
+Add under [mysqld]:
+replicate-do-table=your_database.table1
+replicate-do-table=your_database.table2
+
+2. Restart MySQL Service on Replica
+After modifying the config:
+
+Optional (MySQL 8.0.23+): Use SQL to Change Filters
+Instead of editing the config file:
+
+CHANGE REPLICATION FILTER REPLICATE_DO_TABLE = ('db1.table1', 'db2.table2');
+
