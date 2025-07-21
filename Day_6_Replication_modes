@@ -65,3 +65,15 @@ Instead of editing the config file:
 
 CHANGE REPLICATION FILTER REPLICATE_DO_TABLE = ('db1.table1', 'db2.table2');
 
+🔁 Types of Replication in MySQL
+
+| Replication Type                               | Description                                                                                                                              | Use Case                                             |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 🔹 **Asynchronous Replication**                | Default; master sends binlog to replica; replica applies when it can.                                                                    | ✅ Simple, used when minor lag is acceptable.         |
+| 🔸 **Semi-Synchronous Replication**            | Master waits for **at least one replica** to acknowledge receipt before committing.                                                      | ✅ Safer than async, ensures some data durability.    |
+| 🟢 **Group Replication** (InnoDB Cluster)      | Multi-master, built-in conflict handling, automatic failover.                                                                            | ✅ HA, fault-tolerant, cloud-friendly.                |
+| 🧠 **Multi-Source Replication**                | One replica receives data from multiple masters.                                                                                         | Used in data warehousing or sharded apps.            |
+| 📂 **Row-based, Statement-based, Mixed-mode**  | Formats of binlog: <br>• **Row-based (RBR)** – logs actual data <br>• **Statement-based (SBR)** – logs SQL <br>• **Mixed** – combination | **Row-based** is most preferred for safety/accuracy. |
+| 🔀 **Replica Filtering (Partial Replication)** | Replicate only selected databases/tables.                                                                                                | ✅ Custom sync, reduce load.                          |
+| 🧰 **MySQL Clone Plugin** (8.0+)               | For provisioning a new replica from another instance.                                                                                    | ✅ Fast initial sync without dump/import.             |
+
