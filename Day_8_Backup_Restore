@@ -35,7 +35,7 @@ echo "Backup for $DATABASE_NAME completed at $DATE"
 
 
 Make it executable:
-chmod +x /usr/local/bin/mysql_backup_ss_utiity.sh
+chmod +x /usr/local/bin/mysql_backup_ss_utiity.sh   
 
 Schedule Backup Using Cron
 Edit your crontab:
@@ -45,6 +45,9 @@ crontab -e
 Add this line to run the backup every day at 2:30 AM:
 mi hr
 30 2 * * * /usr/local/bin/mysql_backup_ss_utiity.sh >> /var/log/mysql_backup_ss_utiity.log 2>&1
+
+crontab -l # to see the job list 
+
 
 * * * * * command_to_run
 | | | | |
