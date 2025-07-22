@@ -1,0 +1,240 @@
+How to Enable GTID-Based Replication
+Step 1: Configure the Primary (Master) Server
+Edit your MySQL configuration file (my.cnf or my.ini) and add these settings under the [mysqld] section:
+
+[mysqld]
+server-id=1                         # Unique server ID for each server
+log_bin=mysql-bin                   # Enable binary logging
+binlog_format=ROW                  # Recommended format for replication
+gtid_mode=ON                      # Enable GTID mode
+enforce_gtid_consistency=ON       # Ensure safe GTID operations
+log_slave_updates=ON               # So slaves also log updates
+master_info_repository=TABLE       # Store master info in tables (better for GTIDs)
+relay_log_info_repository=TABLE    # Store relay info in tables
+relay_log_recovery=ON              # Enable relay log recovery on startup
+
+
+Restart MySQL after making these changes.
+
+Step 2: Configure the Replica (Slave) Server(s)
+Similarly, on each replica, edit the config:
+
+[mysqld]
+server-id=2                       # Must be unique and different from master
+log_bin=mysql-bin                 # Enable binary logging (if you want chained replicas)
+binlog_format=ROW
+gtid_mode=ON
+enforce_gtid_consistency=ON
+log_slave_updates=ON
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+relay_log_recovery=ON
+
+Restart the MySQL server on the replica(s).
+
+Step 3: Set up Replication User
+On the primary, create a user for replication:
+
+CREATE USER 'repl'@'%' IDENTIFIED BY 'your_password';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+
+Step 4: Get Master Status and Start Replication on Replica
+On the primary:
+
+SHOW MASTER STATUS;
+
+Note the File and Position (for reference, though GTID replication doesn’t depend heavily on this).
+
+On the replica, run:
+
+CHANGE SOURCE TO
+  SOURCE_HOST='primary_host_ip',
+  SOURCE_USER='repl',
+  SOURCE_PASSWORD='your_password',
+  SOURCE_AUTO_POSITION=1;
+  
+START REPLICA;
+
+Step 5: Verify Replication
+On the replica, check:
+
+SHOW REPLICA STATUS\G
+
+Look for:
+
+Slave_IO_Running: Yes
+
+Slave_SQL_Running: Yes
+
+Seconds_Behind_Master: 0 (or close to zero)
+
+Summary
+Enable GTID mode on all servers.
+
+Use MASTER_AUTO_POSITION=1 to use GTID-based replication.
+
+Use replication user with the right privileges.
+
+Check replication status carefully.
+
+
+#### CREATE A 3 SERVER GTID BASED REPLICATION #### WITH AUTOMATIC FAILOVER 
+
+Step 1: Setup Overview
+Server 1: Primary (Master) — server-id=1
+
+Server 2: Replica 1 — server-id=2
+
+Server 3: Replica 2 — server-id=3
+
+
+All servers will have GTID-based replication enabled.
+
+Step 2: Configuration for Each Server
+Add these to your my.cnf on each server, changing only server-id and server-ip:
+
+[mysqld]
+server-id=1            # Change to 2 or 3 on replicas
+log_bin=mysql-bin
+binlog_format=ROW
+gtid_mode=ON
+enforce_gtid_consistency=ON
+log_slave_updates=ON
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+relay_log_recovery=ON
+skip_name_resolve=1
+
+RESTART MYSQL ON ALL SERVER
+
+Step 3: Create Replication User on Primary (Server 1)
+
+CREATE USER 'repl'@'%' IDENTIFIED BY 'your_password';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+
+Step 4: Configure Replication on Replicas (Server 2 & 3)
+On each replica, run:
+
+CHANGE SOURCE TO
+  SOURCE_HOST='primary_ip',
+  SOURCE_USER='repl',
+  SOURCE_PASSWORD='your_password',
+  SOURCE_AUTO_POSITION=1;
+
+START REPLICA;
+
+Step 5: Verify Replication
+On each replica:
+
+SHOW REPLICA STATUS\G;
+
+Look for Slave_IO_Running: Yes and Slave_SQL_Running: Yes.
+
+Step 6: Failover Testing Script (Manual Simulation)
+Let’s say Server 1 is primary, and you want to simulate failover by stopping MySQL on Server 1 and promoting Server 2.
+
+On Server 1:
+
+sudo systemctl stop mysql
+
+On Server 2 (Replica to Promote):
+
+STOP SLAVE;
+RESET SLAVE ALL;  -- Removes replication config because this will become primary
+
+On Server 3 (Reconfigure to replicate from new primary Server 2):
+CHANGE MASTER TO
+  MASTER_HOST='server_2_ip',
+  MASTER_USER='repl',
+  MASTER_PASSWORD='your_password',
+  MASTER_AUTO_POSITION=1;
+
+START SLAVE;
+
+Running it on Replica 2 is ideal because:
+
+It monitors the primary.
+
+If the primary is down, it promotes Replica 1.
+
+Then it reconfigures Replica 2 (itself) to replicate from the new primary.
+
+
+
+----Faiover detection in mysql windows server
+
+# Save as Failover.ps1
+
+$primary = "192.168.1.10"
+$replica1 = "192.168.1.11"
+$replica2 = "192.168.1.12"
+$user = "root"
+$pass = "your_password"
+
+# Ping primary
+if (Test-Connection -ComputerName $primary -Count 1 -Quiet) {
+    Write-Output "Primary $primary is online."
+    exit
+}
+
+# Failover steps (simplified, run locally or with MySQL Workbench)
+
+Invoke-Expression "mysql -u$user -p$pass -h $replica1 -e `"STOP SLAVE; RESET SLAVE ALL;`""
+Invoke-Expression "mysql -u$user -p$pass -h $replica2 -e `"STOP SLAVE;
+CHANGE MASTER TO MASTER_HOST='$replica1', MASTER_USER='repl', MASTER_PASSWORD='$pass', MASTER_AUTO_POSITION=1;
+START SLAVE;`""
+
+Write-Output "Failover complete. $replica1 promoted."
+
+
+---- failover detection in linux server 
+-------- SCRIPT TO MONITOR THE SERVER AND TRIGGER TO FAILOVER save file  failover.sh
+
+#!/bin/bash
+
+# === CONFIGURATION ===
+PRIMARY_HOST="192.168.1.10"
+REPLICA_1="192.168.1.11"
+REPLICA_2="192.168.1.12"
+MYSQL_USER="root"
+MYSQL_PASS="your_mysql_root_password"
+
+LOGFILE="/var/log/mysql_failover.log"
+NOW=$(date '+%Y-%m-%d %H:%M:%S')
+
+# === STEP 1: CHECK IF PRIMARY IS ALIVE ===
+ping -c 1 $PRIMARY_HOST > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo "$NOW - Primary ($PRIMARY_HOST) is alive." | tee -a $LOGFILE
+    exit 0
+fi
+
+echo "$NOW - Primary ($PRIMARY_HOST) is DOWN. Starting failover." | tee -a $LOGFILE
+
+# === STEP 2: PROMOTE REPLICA_1 TO NEW PRIMARY ===
+echo "$NOW - Promoting $REPLICA_1 to new primary." | tee -a $LOGFILE
+mysql -u$MYSQL_USER -p$MYSQL_PASS -h $REPLICA_1 -e "STOP SLAVE; RESET SLAVE ALL;"
+
+# === STEP 3: RECONFIGURE REPLICA_2 TO FOLLOW REPLICA_1 ===
+echo "$NOW - Reconfiguring $REPLICA_2 to follow $REPLICA_1." | tee -a $LOGFILE
+mysql -u$MYSQL_USER -p$MYSQL_PASS -h $REPLICA_2 -e "
+STOP SLAVE;
+CHANGE MASTER TO
+  MASTER_HOST='$REPLICA_1',
+  MASTER_USER='repl',
+  MASTER_PASSWORD='your_replication_password',
+  MASTER_AUTO_POSITION=1;
+START SLAVE;"
+
+echo "$NOW - Failover complete. $REPLICA_1 is new primary." | tee -a $LOGFILE
+
+
+
+
+
+
+
+
+
