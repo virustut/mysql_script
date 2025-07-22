@@ -1,0 +1,77 @@
+Create Backup User in MySQL (if not done yet)
+
+CREATE USER 'backupuser'@'localhost' IDENTIFIED BY 'your_password';
+GRANT SELECT, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER ON ss_utiity.* TO 'backupuser'@'localhost';
+FLUSH PRIVILEGES;
+
+
+# Backup Script for ss_utiity
+Save this as /usr/local/bin/mysql_backup_ss_utiity.sh:
+
+#!/bin/bash
+
+# Backup directory
+BACKUP_DIR="/var/backups/mysql"
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+
+# MySQL credentials
+MYSQL_USER="backupuser"
+MYSQL_PASS="your_password"
+
+# Database name
+DATABASE_NAME="ss_utiity"
+
+# Create backup directory if needed
+mkdir -p "$BACKUP_DIR"
+
+# Backup command with compression and single transaction
+mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASS" --single-transaction "$DATABASE_NAME" | gzip > "$BACKUP_DIR/${DATABASE_NAME}_$DATE.sql.gz"
+
+# Optional: remove backups older than 7 days
+find "$BACKUP_DIR" -type f -name "${DATABASE_NAME}_*.sql.gz" -mtime +7 -exec rm {} \;
+
+# Log success message
+echo "Backup for $DATABASE_NAME completed at $DATE"
+
+
+Make it executable:
+chmod +x /usr/local/bin/mysql_backup_ss_utiity.sh
+
+Schedule Backup Using Cron
+Edit your crontab:
+
+crontab -e
+
+Add this line to run the backup every day at 2:30 AM:
+mi hr
+30 2 * * * /usr/local/bin/mysql_backup_ss_utiity.sh >> /var/log/mysql_backup_ss_utiity.log 2>&1
+
+* * * * * command_to_run
+| | | | |
+| | | | +----- Day of the Week (0-7) (Sunday=0 or 7)
+| | | +------- Month (1-12)
+| | +--------- Day of the Month (1-31)
+| +----------- Hour (0-23)
++------------- Minute (0-59)
+
+
+| Position | Field        | Allowed Values                    | Meaning of `*`     |
+| -------- | ------------ | --------------------------------- | ------------------ |
+| 1        | Minute       | 0-59                              | Every minute       |
+| 2        | Hour         | 0-23                              | Every hour         |
+| 3        | Day of Month | 1-31                              | Every day of month |
+| 4        | Month        | 1-12 or Jan-Dec                   | Every month        |
+| 5        | Day of Week  | 0-7 or Sun-Sat (0 and 7 = Sunday) | Every day of week  |
+
+
+
+That’s it!
+Backups will be saved compressed in /var/backups/mysql
+
+Older backups (7+ days) will be auto-deleted
+
+Logs will be in /var/log/mysql_backup_ss_utiity.log
+
+
+
+
