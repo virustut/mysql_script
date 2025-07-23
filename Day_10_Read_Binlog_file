@@ -5,6 +5,8 @@ Run this from the command line (not inside MySQL):
 
 mysqlbinlog /var/lib/mysql/binlog.000001
 
+mysqlbinlog --verbose --database=SSO /var/lib/mysql/binlog.000005
+
 
 📄 3. Filter by date or time
 You can read a binlog for a specific time range:
