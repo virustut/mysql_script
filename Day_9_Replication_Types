@@ -1,0 +1,230 @@
+--- Master
+mysql> select @@gtid_mode;
+
+mysql> select @@enforce_gtid_consistency;
+
+mysql> system clear;
+
+Note : if above is on no need to change in configuration file or if off
+	on it and restart mysql server
+
+now enable on other server's Slave1 and Slave2 and restart mysql server
+
+take a dump or .sql file and import using below command
+mysql <employee.sql
+
+Enable the binary log on master
+
+create a mysql replication user on master
+create user 'slave_user'@'%' identified with mysql_native_password by 'Not_so_secure1!';
+
+grant replication slave on *.* to 'slave_user'@'%';
+
+stop the slave server mysql 
+
+remove mysql directory
+
+and take a master server backup of entire database 
+restore on slave server
+
+and set the GTID 
+mysql> SET GLOBAL gtid_purged="02993437-de64-43db-089927b81194:1-181;
+
+change master to === change replication source to
+master_host ='',
+master_port ='',
+master_user ='',
+master_password='',
+master_auto_position=1;
+
+
+Enable the binary log 
+
+
+MySQL Replication Topology
+
+a) master-master replication
+b) multi-source replication
+c) chain replication
+d) single master multi slave(replica) replicaton
+e) slave/replica side replication filtering
+f) relay log/binary log vs Relay log event storage
+g) mixed mode replication 
+
+===Master == Master ==Replication
+
+Add this line in  mysqld in master
+auto_increment_increment = 2
+auto_increment_offset    = 1
+
+Add this line in  mysqld in slave
+auto_increment_increment = 2
+auto_increment_offset    = 2
+
+Restar the services 
+
+create replicatio user in master and slave server user 
+grant replication slave , replication client on *.* to replica@'%';
+
+
+master  
+show binary logs;
+
+flush binary logs; # this will generate new binary log
+
+slave
+flush binary logs;
+
+master
+show master status;
+
+copy the binary_log.00002 and position
+
+slave
+change replication source to 
+source_host='master_ip',
+source_user='master_user',
+source_password='admin@123',
+source_log_file ='binary_log.0002',
+source_log_pos =157;
+
+start replica;
+show replica status\G;
+
+Note : The above one is done from master to slave
+
+Now we need to configure slave to master
+
+show master status\G;
+
+note the binary log postion and file name 
+
+master
+change replication source to 
+source_host='slave_ip',
+source_user='master_user',
+source_password='admin@123',
+source_log_file ='binary_log.0002',
+source_log_pos =156;
+
+start replica ;
+show replica status\G;
+
+Note : in master master replication during table creation 
+       every table will be created with primary key & auto_increment
+
+Result : in this master master are happen but while inserting data are not insert in
+proper valid format it show's like
+master: 1,3,5
+slave : 6,8,10
+all data are showing 1,3,5,6,8,10 
+this type of data are not valid location some time the devoloper's are confusing 
+where is my no 2 id data ?
+
+
+#####====Multi Source Replication====#####
+
+Means : multiple master pushing there data into a single slave server
+	in this each master binary log to replica relay log of each server is differenec
+
+Three server :
+a , b , c
+a & b our master and c is our slave
+
+in master.info file is very important file it is contain the info about my user and binlog 
+and port positon etc . this is for single master and slave
+
+if we have mutltiple master and single slave then we use the Channel_Name :
+and we have remove the master.info file 
+
+Reset slave all; to remove replication 
+
+master1
+show binary log status;
+
+master2
+show binary log status;
+
+
+
+slave
+change source replication to
+source_host ='',
+source_user ='',
+source_password ='',
+source_log_file='',
+source_log_pos=4 
+for channel 'ch-1';
+
+during this above is running error has occoured to conveert this file to table type 
+
+go the my.cnf file and add this parameter on slave and restart service
+
+master_info_repository =table
+reloay_log_info_repository =table
+
+now run :
+
+change source replication to
+source_host ='',
+source_user ='',
+source_password ='',
+source_log_file='',
+source_log_pos=4 
+for channel 'ch-1';
+
+
+to fine show clumn master_info_file=mysql.tablename
+we can see that in db
+
+mysql > select * from mysq.tablename\G;
+
+Note : in mysql version 8.0 it automatically create in a table that's why no need to add extra column adding in conf file
+
+for master2 
+salve(same server)
+change source replication to
+source_host ='',
+source_user ='replica',
+source_password ='replica',
+source_log_file='binlog.000008',
+source_log_pos=4 
+for channel 'ch-2';
+
+##Suppose we have to stop only one channel and see only one channel
+
+show slave status for channel 'ch-1'\G;
+
+stop slave for channel 'ch-1'\G;
+
+
+###impact on relay log 
+
+to read realy log 
+mysqlbinlog --v relay-ch1@323.00005
+
+
+
+
+
+#####====Mysql Chain Replication====#####
+ binlog  binlog/relaylog binlog/relaylog
+A------>B--------------->C-------->D
+
+Note : in this when master A genrate the binlog and replicate to the server B and this is written in relay log
+       now we have to move my data from B to C but in B my log are written in relay log i want to write in to the relay to binlog
+
+Now : get relay to bin log use below parameter to proceed to the next slave 
+log_slave_updates or log_replica_updates ( this is implement in slaver b and slave c that is going to d
+
+in mysql 8 or above by default all above points are enable
+
+
+#####====Mysql Single Master Multi Slave Replica Replication====#####
+
+lower_case_table_names =1
+
+skip-log-bin=1
+ 
+
+
