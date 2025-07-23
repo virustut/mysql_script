@@ -1,0 +1,26 @@
+SHOW BINARY LOGS;
+
+📂 2. Use mysqlbinlog to read the logs
+Run this from the command line (not inside MySQL):
+
+mysqlbinlog /var/lib/mysql/binlog.000001
+
+
+📄 3. Filter by date or time
+You can read a binlog for a specific time range:
+
+mysqlbinlog --start-datetime="2025-07-23 10:00:00" \
+            --stop-datetime="2025-07-23 11:00:00" \
+            /var/lib/mysql/binlog.000002
+
+
+ 4. Filter for a specific database
+To filter output by database name:
+
+mysqlbinlog --database=your_database /var/lib/mysql/binlog.000002
+
+
+📦 5. Find binlog directory
+If you're not sure where binlogs are stored, check this in MySQL:
+
+SHOW VARIABLES LIKE 'log_bin_basename';
