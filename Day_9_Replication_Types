@@ -225,6 +225,19 @@ in mysql 8 or above by default all above points are enable
 lower_case_table_names =1
 
 skip-log-bin=1
+
+
+30 10 * * * /usr/bin/mysqldump -u root -p'Opo@1234' SSO > /db_backup/sso_$(date +\%d\%m\%Y).sql
+
  
+method to use send backup transfer from one server to another server
+rsync -avzh --progress filenmae.sql root@10.0.0.5:/root/db_backup/filepath
+
+
+restore zip file
+create same database first
+gunzip <templ.sql.gz | mysql -u root -p temp1
+
+
 
 
