@@ -239,5 +239,73 @@ create same database first
 gunzip <templ.sql.gz | mysql -u root -p temp1
 
 
+#######MySQL Slave/Replica Side Replication Filtering#######
+
+Note : All this things are changes in to the replica side 
+
+replicate_do_db = tmp1
+replicate_ignore_db =tmp1 --> i.e this database are ignore to replicate 
+
+replicate_do_table  ---> work with table which is replicate 
+replicate_ignore_table  --> work with tablw whic is not replicate 
+
+replicate_wild_do_table  ----> it find a pattern and applied like start from T....
+replicate_wild_ignore_table = temp.t1% or temp.% (this mean no any table are replicate from this table)
+
+replicate_rewrite_db   --->this is use to replicate source db in replica with another name 
+
+Note : when we try to run this command on slave side we need to stop replica sql_thread then run
+
+on replica side 
+change replication filter replicate_do_db=(temp1)
+
+start replica sql_thread
+
+check status -> show replica status\G;	
+
+
+To remove filter 
+mysql> stop slave sql_thread;
+mysql> change replication filter replicate_do_db = (); ## whatever parameter are we set it remove to run this 
+
+start replica
+mysql > start replica sql_thread
+
+# for replicate_do_table example
+mysql> stop replica_sql_thread
+mysql> change replication filter replicate_do_table =(temp1.t1_1)
+
+Example : replicate_rewrite_db   --->this is use to replicate source db in replica with another name 
+master> drop all database to create a new and fresh db
+
+slave> stop replica sql_thread;
+
+slave> change replication filter replicate_rewrite_db =((tmp1, tmp2)) # in master tmp1 and insert in replica tmp2 db
+
+Note : but one demarit of this filter based when we restart our mysql service all the filter will gone (remove) replicate_rewrite_db 
+	to avoid this we have put the entry in my.cnf file 
+
+
+
+
+#######MySQL Relay Log | Binary Log Vs Relay Log Event Storage#######
+
+Change replication source to source_log_file = 'binlog.0000020' ,source_log_pos=2365;
+
+Now next we see how data are store in relay log
+
+suppose if i perform my new activity in a new log file the we use below coomand to run this 
+show binary logs # this is use to show how many log file 
+flush binary log # this will use to create a new fresh binary log file 
+
+mysqlbinlog -v relay.000004 | grep binlog.* # this query find which binlog are read in the relay log
+
+in the binary log file only mention where the binary log file start and end
+but in the relay log file they store relay log position and as well as binary log position 
+
+in the relay log pos where #at 1121 this is relay log start position 
+and where end_log_pos =942 that mean's this is the binary log position of relay log file
+
+Note : Relay_log_pos = 1152 always takes a new position number of it for future relay log file position 
 
 
