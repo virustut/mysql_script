@@ -6,3 +6,32 @@ When the new binary log file will created
 a) service restart
 b) flush_logs
 c) max_binlog_size = default is 1GB or we can set max_binlog_size=299M
+
+to read the varibale through the mysql 
+mysql > show global variables like '%bin';
+
+Note : We already know in mysql 8 and above the bin-log is by default enable but when we need to disable this binary log we use below command to run in .cnf file
+skip_log_bin = 1 # restart the mysql service 
+
+Note : precedenece order
+log_bin = binlog
+skip_log_bin = 1 
+
+in both above the last one is implemented 
+
+expiry_logs_days = 7 # i.e means after 7 Days my log file will expire 
+@@expire_logs_days =0 # i.e never expire in mysql 5.7 version 
+but in mysql 8.10 and above default expire 30 Days
+
+mysql > purge binary logs to 'mysqlbinlog.000004'
+
+mysql > purge binary logs before '2025-06-30 15:00';
+
+Binary log formate 
+a) row based
+b) statement based
+c) mixed mode 
+
+mysqlbinlog -v mysqlbinlog.000005 > mysqlbinlog00005.txt
+# vi mysqlbinlog000005.txt
+
