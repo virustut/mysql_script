@@ -36,3 +36,13 @@ mysqlbinlog -v mysqlbinlog.000005 > mysqlbinlog00005.txt
 # vi mysqlbinlog000005.txt
 
 ## Change binary log location ##
+
+1: Stop Mysql
+2: create a directory for binlog file 
+3: give it permission chmode mysql:mysql
+4: put the location in mysql .cnf file 
+5: log_bin = /db/binlog/binlog save it 
+6: start the mysql service or if ubuntu need to restart the apparmer service
+7: move my old binlog file to the newly created directory folder below are the command
+#] mv binlog.00000*  ../db/binlog/
+
