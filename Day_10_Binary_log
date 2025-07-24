@@ -2,3 +2,7 @@
 1. use for replication
 2. perform point in time recovery
 
+When the new binary log file will created 
+a) service restart
+b) flush_logs
+c) max_binlog_size = default is 1GB or we can set max_binlog_size=299M
