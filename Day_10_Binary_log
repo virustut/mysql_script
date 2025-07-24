@@ -1,0 +1,4 @@
+#----MYSQL Binary logs
+1. use for replication
+2. perform point in time recovery
+
