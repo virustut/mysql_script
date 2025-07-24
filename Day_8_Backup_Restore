@@ -76,5 +76,23 @@ Older backups (7+ days) will be auto-deleted
 Logs will be in /var/log/mysql_backup_ss_utiity.log
 
 
+## Backup database 
+mysqldump -u root -p --all-databases | gzip -1 -9 > db_backup.sql.gz;
+
+##Backup transfer from one server to another server
+rsync -avzh --progress db_backup.sql.gz  root@10.0.0.4:/root/
+a -- archive mode
+v -- versbose mode 
+z -- during transfer compress 
+h -- human readable formate
+
+on slave replica 
+Restore database 
+gunzip < db_backup.sql.gz | Mysql -u root -p   #make sure the database which you want to restore already created on slave server
+Intialize replication 
+Verify replication
+
+
+
 
 
