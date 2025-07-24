@@ -35,3 +35,4 @@ c) mixed mode
 mysqlbinlog -v mysqlbinlog.000005 > mysqlbinlog00005.txt
 # vi mysqlbinlog000005.txt
 
+## Change binary log location ##
