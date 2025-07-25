@@ -16,5 +16,12 @@ chown mysql /data
 mysql> create tablespace myspace add datafile '/data/newdata.ibd';
 
 mysql> create table test2(id int) tablespace=myspace;
+                OR 
 mysql> create table test4(id int) DATA DIRECTORY='/DATA';
+
+
+## To see in which table space my table is created 
+mysql> show create table T1\G;
+
+
 
