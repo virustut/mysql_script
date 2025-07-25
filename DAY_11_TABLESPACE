@@ -1,0 +1,20 @@
+### Tablespace_in_Mysql ###
+
+mysql> Use DB;
+mysql> CREATE TABLESPACE myspace  add datafile 'mytbl.ibd';
+
+### Create a table in this tablespace ###
+
+mysql> Use DB
+mysql> create table employee (id int , name varchar(200)) tablespace=myspace;
+
+## if we want to create our data file in a specific directory ##
+
+mkdir data
+chown mysql /data
+
+mysql> create tablespace myspace add datafile '/data/newdata.ibd';
+
+mysql> create table test2(id int) tablespace=myspace;
+mysql> create table test4(id int) DATA DIRECTORY='/DATA';
+
