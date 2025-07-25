@@ -7,6 +7,26 @@
 
 
 
+
+##########Link Server Creation and Call Mysql Procedure from SQL Server##########
+
+
+-- Method 1: Using linked server
+EXEC ('call GetAccessibleMenus(4)') AT [20.20.20.82]
+
+-- Method 2: Using Daynamic query 
+DECLARE @UserID INT = 4
+DECLARE @sql NVARCHAR(MAX)
+
+-- Build dynamic SQL string
+SET @sql = 'EXEC (''CALL GetAccessibleMenus(' + CAST(@UserID AS VARCHAR(10)) + ')'') AT [20.20.20.82]'
+
+-- Execute the dynamic SQL
+EXEC sp_executesql @sql
+
+
+
+
 1. FEDERATED Storage Engine
 MySQL has a FEDERATED storage engine that lets you create a table on one server that actually points to a table on a remote MySQL server.
 
