@@ -26,3 +26,30 @@ mysqlbinlog --database=your_database /var/lib/mysql/binlog.000002
 If you're not sure where binlogs are stored, check this in MySQL:
 
 SHOW VARIABLES LIKE 'log_bin_basename';
+
+
+## Read the bin-log file in windows server ##
+
+# Use mysqlbinlog to Read the Log
+
+mysqlbinlog -v "C:\Path\To\BinaryLogs\MASTER-bin.000002"
+
+Optional – Filter by Time or Position
+By position:
+mysqlbinlog --start-position=154 --stop-position=900 "C:\...\MASTER-bin.000002"
+
+By datetime:
+mysqlbinlog --start-datetime="2025-07-25 10:00:00" --stop-datetime="2025-07-25 11:00:00" "C:\...\MASTER-bin.000002"
+
+
+ # Optional – Save Output to File
+mysqlbinlog "C:\...\MASTER-bin.000002" > C:\logs\binlog_output.sql
+
+# (Optional) Replay the Binary Log
+# If you want to apply the binary log contents to a MySQL server:
+mysql -u root -p < C:\logs\binlog_output.sql
+
+
+
+
+
