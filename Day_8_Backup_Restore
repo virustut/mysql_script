@@ -4,6 +4,16 @@ CREATE USER 'backupuser'@'localhost' IDENTIFIED BY 'your_password';
 GRANT SELECT, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER ON ss_utiity.* TO 'backupuser'@'localhost';
 FLUSH PRIVILEGES;
 
+mysqldump (logical backup):
+
+mysqldump --single-transaction --master-data=2 --all-databases > backup.sql
+
+--single-transaction: ensures a consistent snapshot (InnoDB only).
+
+--master-data=2: embeds the binlog position in the dump.
+
+
+
 
 # Backup Script for ss_utiity
 Save this as /usr/local/bin/mysql_backup_ss_utiity.sh:
