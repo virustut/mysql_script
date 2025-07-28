@@ -222,7 +222,7 @@ CREATE DATABASE IF NOT EXISTS `TEstt`
 [root@localhost mysql]# mysqlbinlog -v binlog.000005
 
 ## i have find the binlog position and take a sql file for recovery
-[root@localhost mysql]# mysqlbinlog --stop-position=1234 /var/lib/mysql/mysql-bin.000002 > db_backup/recovery.sql
+[root@localhost mysql]# mysqlbinlog --start-position= 20710 --stop-position=23102 binlog.000005 > TEsttRecovery.sql
 
 --- Step 3 : Restore the recovery file 
 
