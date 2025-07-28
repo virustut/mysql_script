@@ -1,0 +1,240 @@
+
+Step 1: Stop MySQL (Recommended)
+
+sudo systemctl stop mysql
+# or
+sudo service mysql stop
+
+Step 2: Find Your Binary Log Files
+
+# Check current binary log files
+ls -la /var/lib/mysql/ | grep binlog
+# or check MySQL data directory
+ls -la /var/log/mysql/ | grep binlog
+
+
+Step 3: Find the Exact Time/Position When Database Was Dropped
+
+# Search for the DROP DATABASE command in binary logs
+mysqlbinlog /var/lib/mysql/mysql-bin.000001 | grep -i "drop.*testt"
+# or search across all binlog files
+mysqlbinlog /var/lib/mysql/mysql-bin.* | grep -i "drop.*testt"
+
+
+Step 4: Create Point-in-Time Recovery
+
+# Replay all transactions UP TO the point before DROP DATABASE
+# Example if the drop happened at position 1234 in mysql-bin.000002
+
+mysqlbinlog --stop-position=1234 /var/lib/mysql/mysql-bin.000002 > recovery.sql
+
+++++++++++++++++++++Extract Specific Range from binlog.000005:
+
+# Extract from position 0 to position 23178 (just before the DROP)
+
+mysqlbinlog --start-position=0 --stop-position=23178 /var/lib/mysql/binlog.000005 > specific_recovery.sql
+
+Or if you want a specific range within the file:
+
+# Example: Extract from position 1000 to 23178
+
+mysqlbinlog --start-position= 20710 --stop-position=23178 /var/lib/mysql/binlog.000005 > specific_range.sql
+mysqlbinlog --start-position= 20710 --stop-position=23102 binlog.000005 > TEsttRecovery.sql
+
+
+To Extract Only a Specific Time Range:
+
+# If you want data between specific times in that file
+
+mysqlbinlog --start-datetime="2025-07-28 10:00:00" --stop-datetime="2025-07-28 16:21:47" /var/lib/mysql/binlog.000005 > time_range.sql
+
+
+# If you have multiple binlog files, include all up to the incident
+
+mysqlbinlog /var/lib/mysql/mysql-bin.000001 /var/lib/mysql/mysql-bin.000002 --stop-position=1234 > recovery.sql
+
+
+Step 5: Start MySQL and Apply Recovery
+
+# Start MySQL
+sudo systemctl start mysql
+
+# Apply the recovery
+mysql -u root -p < recovery.sql
+
+
+#########################################################################################################################
+
+
+Alternative Method (If MySQL is Running):
+
+
+# Find the exact timestamp when DROP occurred
+mysqlbinlog /var/lib/mysql/mysql-bin.* | grep -A5 -B5 -i "drop.*testt"
+
+Example : 
+mysqlbinlog /var/lib/mysql/binlog.* | grep -A5 -B5 -i "drop.*testt"
+
+# Recover up to specific datetime (replace with actual timestamp)
+mysqlbinlog --stop-datetime="2024-01-15 14:30:00" /var/lib/mysql/mysql-bin.* | mysql -u root -p
+
+
+Important Notes:
+
+Binary logs must contain the database creation and all subsequent changes
+If you don't have the initial database creation in binlogs, you'll need a backup
+Test on a separate MySQL instance first if possible
+The database name is case-sensitive (TEstt vs testt)
+
+To Check If Recovery Worked:
+
+
+SHOW DATABASES;
+USE TEstt;
+SHOW TABLES;
+
+Warning: This only works if your binary logs contain the original database creation. If the database was created before binary logging was enabled, you'll need an actual backup file to restore from.
+Would you like me to help you identify the specific binlog files and positions?
+
+#########################################################################################################################
+
+
+
+Method 1: Search Binary Logs with Position Info
+
+# This shows positions and timestamps for all events
+mysqlbinlog /var/lib/mysql/mysql-bin.000001 | grep -B5 -A5 -i "drop.*testt"
+
+# More detailed view with positions
+mysqlbinlog --base64-output=decode-rows -v /var/lib/mysql/mysql-bin.* | grep -B10 -A5 -i "drop.*testt"
+
+Method 2: Use mysqlbinlog with Specific Formatting
+
+# Shows position numbers clearly
+mysqlbinlog --short-form /var/lib/mysql/mysql-bin.* | grep -B2 -A2 -i "drop.*testt"
+
+
+Method 3: Search All Binary Logs Systematically
+
+# Check each binlog file
+for file in /var/lib/mysql/mysql-bin.*; do
+  echo "=== Checking $file ==="
+  mysqlbinlog "$file" | grep -B3 -A3 -i "drop.*testt"
+done
+
+
+Method 4: Look for Position Markers
+
+When you find the DROP command, look for lines like this:
+
+mysqlbinlog /var/lib/mysql/mysql-bin.000002 | grep -B10 -A10 -i "drop.*testt"
+
+Method 5: Use SHOW BINLOG EVENTS (If MySQL is running)
+
+-- Find which binlog file contains the drop
+SHOW BINARY LOGS;
+
+-- Check events in specific binlog file
+mysql -u root -p 
+
+SHOW BINLOG EVENTS IN 'binlog.000005';
+
+-- Search for the drop command
+SHOW BINLOG EVENTS IN 'binlog.000005' FROM 100 LIMIT 10;
+
+Method 2: Run SQL Command Directly from Bash
+
+# Single command
+mysql -u root -p -e "SHOW BINLOG EVENTS IN 'binlog.000005';"
+
+# Or without password prompt (if no password)
+mysql -u root -e "SHOW BINLOG EVENTS IN 'binlog.000005';"
+
+#######################################Step to Recovery####################################
+
+example : 
+# at 23179
+#250728 16:21:48 server id 1  end_log_pos 23286 CRC32 0xb38ebf6f        Query   thread_id=30    exec_time=0     error_code=0    Xid = 9062
+SET TIMESTAMP=1753699908/!/;
+drop database TEstt
+/!/;
+# at 23286
+#250728 16:28:40 server id 1  end_log_pos 23365 CRC32 0xf1176c94 in this what is the start position and end position of drop database command
+
+Looking at your binary log output, here are the positions for the DROP DATABASE command:
+
+DROP DATABASE Position Details:
+
+Start Position:23179
+End Position: 23286
+command: drop database TEstt
+
+
+
+For Recovery, You Want to Stop BEFORE the DROP:
+
+# Recover everything UP TO position 23178 (just before the DROP)
+mysqlbinlog --stop-position=23178 /var/lib/mysql/binlog.000005 > recovery.sql
+
+# If you have multiple binlog files, include all previous ones:
+mysqlbinlog /var/lib/mysql/binlog.000001 /var/lib/mysql/binlog.000002 /var/lib/mysql/binlog.000003 /var/lib/mysql/binlog.000004 /var/lib/mysql/binlog.000005 --stop-position=23178 > recovery.sql
+
+
+Alternative: Use Timestamp (Often Easier)
+
+# Stop at 16:21:47 (1 second before the DROP at 16:21:48)
+mysqlbinlog --stop-datetime="2025-07-28 16:21:47" /var/lib/mysql/binlog.* > recovery.sql
+
+Understanding the Log Format:
+
+# at 23179                    ← START position of the event
+#250728 16:21:48              ← Date/time when it happened  
+end_log_pos 23286             ← END position of the event
+drop database TEstt           ← The actual command
+# at 23286                    ← Next event starts here
+
+
+
+Recovery Command:
+
+# Method 1: Using position
+mysqlbinlog --stop-position=23178 /var/lib/mysql/binlog.000005 > recovery_before_drop.sql
+
+# Method 2: Using timestamp (recommended)
+mysqlbinlog --stop-datetime="2025-07-28 16:21:47" /var/lib/mysql/binlog.* > recovery_before_drop.sql
+
+# Then apply the recovery
+mysql -u root -p < recovery_before_drop.sql
+
+Key Point: You want to stop at position 23178 (one position before 23179) to exclude the DROP DATABASE command but include everything before it.
+The timestamp method is often safer since it's less prone to off-by-one errors!
+
+
+
+
+=======================================REAL EXAMPLE WITH PRACTICAL ON MY SERVER=======================================
+
+--- Step 1 : search the query 
+[root@localhost mysql]# mysqlbinlog binlog.000005 | grep -i "create.*TEstt"
+CREATE DATABASE IF NOT EXISTS `TEstt`
+
+--- Step 2 : Find the position to capture that read and find
+[root@localhost mysql]# mysqlbinlog -v binlog.000005
+
+## i have find the binlog position and take a sql file for recovery
+[root@localhost mysql]# mysqlbinlog --stop-position=1234 /var/lib/mysql/mysql-bin.000002 > db_backup/recovery.sql
+
+--- Step 3 : Restore the recovery file 
+
+[root@localhost db_backup]# mysql -u root -p <TEsttRecovery.sql
+Enter password:
+
+
+---- Step 4 : Now login the Mysql and see the database and table
+mysql -u root -p
+
+SHOW DATABASES
+
+SHOW TABLES
+
+
