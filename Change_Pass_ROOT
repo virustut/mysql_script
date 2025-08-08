@@ -21,7 +21,7 @@ The MySQL80 service is stopping.
 The MySQL80 service was stopped successfully.
 
 
-C:\Program Files\MySQL\MySQL Server 8.0\bin>mysqld --skip-grant-tables --datadir="C:\ProgramData\MySQL\MySQL Server 8.0\Data"
+C:\Program Files\MySQL\MySQL Server 8.0\bin>mysqld --skip-grant-tables --datadir="C:\ProgramData\MySQL\MySQL Server 8.0\Data" ---➡️ Wait here until you see a message like: ready for connection
 
 
 ----------------------------open new terminal with run as administrator----------------------------
