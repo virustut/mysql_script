@@ -20,13 +20,28 @@ C:\Program Files\MySQL\MySQL Server 8.0\bin>net stop MySQL80
 The MySQL80 service is stopping.
 The MySQL80 service was stopped successfully.
 
+Use below command for Mariadb engine
+# C:\Program Files\MySQL\MySQL Server 8.0\bin>mysqld --skip-grant-tables --datadir="C:\ProgramData\MySQL\MySQL Server 8.0\Data" ---➡️ Wait here until you see a message like: ready for connection
+Use Below Command for Innodb engine with default datadirectory
+C:\Program Files\MySQL\MySQL Server 8.4\bin>mysqld --default-files="C:\Program Files\MySQL\MySQL Server 8.4\data" --init-file="C:\changepass.txt" --console
 
-C:\Program Files\MySQL\MySQL Server 8.0\bin>mysqld --skip-grant-tables --datadir="C:\ProgramData\MySQL\MySQL Server 8.0\Data" ---➡️ Wait here until you see a message like: ready for connection
+Use Below Command for Innodb engine with seted datadirectory
+C:\Program Files\MySQL\MySQL Server 8.4\bin>mysqld --datadir="C:\mysql_data\data" --init-file="C:\changepass.txt" --console
 
+Note : --default-files means while installing we don't have set the data directory
+	   --datadir menas if we have set the datadir then we no need to mention the default-files
+
+
+Note : in the above command first put the .ini path and second parameter put the text path which u have created .
 
 ----------------------------open new terminal with run as administrator----------------------------
+----------------------------For MySQL Innodb------------------------
+open a new terminal window
+mysql -u root -p #-- here u put the passowrd which is u have put in the .txt file 
 
-C:\Program Files\MySQL\MySQL Server 8.0\bin>mysql -u root
+
+###################For mariadb#################
+C:\Program Files\MySQL\MySQL Server 8.0\bin>mysql -u root  #--- and 
 Welcome to the MySQL monitor.  Commands end with ; or \g.
 Your MySQL connection id is 61
 Server version: 5.5.5-10.4.32-MariaDB-log mariadb.org binary distribution
