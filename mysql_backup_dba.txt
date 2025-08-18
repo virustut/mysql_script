@@ -129,6 +129,7 @@ Step-by-Step Guide to Back Up Only Data
 ----------------------------------------------------------------------------Restoring the database with different flavour's-------------------------------------------------------------
 
 												Restoring Only the Schema
+Running: mysql.exe --defaults-file="C:\Users\TEMPON~1.002\AppData\Local\Temp\tmp1ss5ddm4.cnf"  --protocol=tcp --host=20.20.20.82 --user=dba --port=3306 --default-character-set=utf8 --comments --database=CRM_Configuration  < "G:\\20.20.20.82_db_backup\\CRM_Configuration_20250729.sql"
 
 Create the Database:   If the database doesn't already exist, you'll need to create it before restoring the schema.
 
@@ -205,6 +206,7 @@ mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND
 
 ----- Restore table data
 mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
