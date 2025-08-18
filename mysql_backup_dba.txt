@@ -104,6 +104,9 @@ What is Binary Log
 	mysqldump -u root -p --no-data --databases db1 db2 db3 > multiple_databases_schema.sql          # multiple database 
 	mysqldump -u root -p --no-data --all-databases > all_databases_schema.sql                                  # all database 
 
+	👉 For a true full backup (tables + data + procedures + functions + triggers + events), use:
+	mysqldump -u root -p --routines --events databasename > fullbackup.sql
+	mysqldump -u root -p --routines --triggers --events databasename > fullbackup.sql
 
 ----------------------------------------------------------------------Step-by-Step Guide to Backup Only the Schema of a Single Table----------------------------------------------------------
 
@@ -206,6 +209,7 @@ mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND
 
 ----- Restore table data
 mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
