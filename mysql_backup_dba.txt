@@ -109,6 +109,12 @@ Explanation of options:
 -------------------------------only one dataase----------------------------
 mysqldump -u root -p mydatabase --routines --triggers --events > mydatabase_full.sql
 
+-------------------------------Multiple database-----------------------------------
+mysqldump -u root -p 1hub_bothub          --routines --triggers --events > /home/sql_backup/1hub_bothub.sql
+mysqldump -u root -p CRM_Configuration    --routines --triggers --events > /home/sql_backup/CRM_Configuration.sql
+mysqldump -u root -p hr_call_analysis     --routines --triggers --events > /home/sql_backup/hr_call_analysis.sql
+mysqldump -u root -p new_1hub_bothub      --routines --triggers --events > /home/sql_backup/new_1hub_bothub.sql
+mysqldump -u root -p test_hr_call_analysis --routines --triggers --events > /home/sql_backup/test_hr_call_analysis.sql
 
 --------------------------------------------------------------------------- Backup with different flavour's or only schema-----------------------------------------------------------
 
@@ -223,6 +229,7 @@ mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND
 
 ----- Restore table data
 mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
