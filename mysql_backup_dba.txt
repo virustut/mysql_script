@@ -91,9 +91,23 @@ What is Binary Log
  
  it also contains statements that potentially could have updated it (ex .  a delete which matched no rows) unless row-based logging is used.
 
+-------------------------------------------------------------------Full Database Backup with all data -----------------------------------------------------------------
+mysqldump -u root -p --all-databases --routines --triggers --events > all_databases_full.sql
 
+Explanation of options:
 
+--all-databases → dumps every database on the server.
 
+--routines → includes stored procedures and functions.
+
+--triggers → includes triggers.
+
+--events → includes event scheduler events.
+
+(No --no-data) → means it will also include all rows (data).
+
+-------------------------------only one dataase----------------------------
+mysqldump -u root -p mydatabase --routines --triggers --events > mydatabase_full.sql
 
 
 --------------------------------------------------------------------------- Backup with different flavour's or only schema-----------------------------------------------------------
@@ -209,6 +223,7 @@ mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND
 
 ----- Restore table data
 mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
