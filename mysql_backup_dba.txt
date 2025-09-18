@@ -149,6 +149,38 @@ Step-by-Step Guide to Back Up Only Data
   	mysql -u [username] -p [database_name] < [backup_file].sql                                         # restore the backup data
 
 
+----------------------------------------------------------------------------Restoring the single database in all database backup file--------------------------------------------------
+✅ Option 1: Use mysql with --one-database (RECOMMENDED)
+
+mysql -u root -p --one-database your_target_database < all_databases_backup.sql
+💡 How it works:
+
+--one-database your_target_database tells MySQL to:
+
+Ignore all USE dbname; statements that don’t match.
+
+Ignore all statements targeting other databases.
+
+This assumes that your_target_database already exists.
+
+⚠️ Important Notes
+
+The --one-database option does not skip DDL (like CREATE DATABASE) in the dump file; it just ignores execution of statements not matching your database.
+
+✅ Option 2: Manually Extract Specific Database SQL from the File
+
+This is more work, but gives you more control.
+
+✅ Option 2: Manually Extract Specific Database SQL from the File
+
+This is more work, but gives you more control.
+
+Find the section for your desired database:
+-- Current Database: `your_target_database`
+
+example : mysql -u root -p --one-database db1 < all_databases_backup.sql
+
+
 ----------------------------------------------------------------------------Restoring the database with different flavour's-------------------------------------------------------------
 
 												Restoring Only the Schema
@@ -171,7 +203,7 @@ Restore the Schema:
 	mysql -u [username] -p [database_name] < [backup_file].sql
 	mysql -u root -p exampledb < employees_schema.sql
 
-
+    
 --------------------------------------------------Restoring Only the Data----------------------------------------------------------
 To restore only the data, you need a backup file that includes the data (i.e., INSERT statements) without any schema definitions.
 
@@ -229,6 +261,7 @@ mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND
 
 ----- Restore table data
 mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
