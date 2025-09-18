@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MySQL Server Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #003366;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h2 {
+      background: #e2e2e2;
+      padding: 10px;
+    }
+
+    table {
+      width: 95%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #004080;
+      color: white;
+    }
+
+    pre {
+      background: #eee;
+      margin: 20px auto;
+      padding: 10px;
+      width: 95%;
+      overflow-x: auto;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>MySQL Server Report</h1>
+  <p id="timestamp"></p>
+</header>
+
+<div class="section">
+  <h2>Server Information</h2>
+  <table>
+    <tr><th>Server Version</th><td id="serverVersion">Loading...</td></tr>
+    <tr><th>Uptime (seconds)</th><td id="uptime">Loading...</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Database Sizes</h2>
+  <table id="databaseTable">
+    <tr><th>Database</th><th>Size (MB)</th></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Binary Logs</h2>
+  <table id="binlogTable">
+    <tr><th>Log File</th><th>Size (Bytes)</th></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>SQL Job History</h2>
+  <pre id="jobHistory">Loading...</pre>
+</div>
+
+<div class="section">
+  <h2>Disk Usage</h2>
+  <pre id="diskUsage">Loading...</pre>
+</div>
+
+<div class="section">
+  <h2>CPU Usage</h2>
+  <pre id="cpuUsage">Loading...</pre>
+</div>
+
+<div class="section">
+  <h2>Memory Usage</h2>
+  <pre id="memoryUsage">Loading...</pre>
+</div>
+
+<script>
+  // === Static Sample Data (Replace with real data dynamically from backend or file) ===
+  const serverInfo = {
+    version: "8.0.34",
+    uptime: 86400
+  };
+
+  const databases = [
+    { name: "employees", size: 128.45 },
+    { name: "sales", size: 64.25 },
+    { name: "inventory", size: 47.89 }
+  ];
+
+  const binlogs = [
+    { file: "mysql-bin.000001", size: 1048576 },
+    { file: "mysql-bin.000002", size: 2097152 }
+  ];
+
+  const jobHistory = `
+[2025-09-16 01:00] - Daily backup completed
+[2025-09-16 03:00] - Sync to DR
+[2025-09-16 04:00] - Optimize tables
+  `;
+
+  const diskUsage = `
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        50G   40G   10G  80% /
+tmpfs           2.0G  1.2M  2.0G   1% /dev/shm
+`;
+
+  const cpuUsage = `CPU: 14.3% us,  3.2% sy,  0.0% ni, 80.5% id`;
+
+  const memoryUsage = `
+              total        used        free      shared  buff/cache   available
+Mem:           7982        4103         602         213        3276        3601
+Swap:          2047           0        2047
+`;
+
+  // === Populate HTML with the sample data ===
+  document.getElementById("timestamp").innerText = new Date().toLocaleString();
+  document.getElementById("serverVersion").innerText = serverInfo.version;
+  document.getElementById("uptime").innerText = serverInfo.uptime;
+
+  const dbTable = document.getElementById("databaseTable");
+  databases.forEach(db => {
+    const row = dbTable.insertRow(-1);
+    row.innerHTML = `<td>${db.name}</td><td>${db.size}</td>`;
+  });
+
+  const logTable = document.getElementById("binlogTable");
+  binlogs.forEach(log => {
+    const row = logTable.insertRow(-1);
+    row.innerHTML = `<td>${log.file}</td><td>${log.size}</td>`;
+  });
+
+  document.getElementById("jobHistory").innerText = jobHistory;
+  document.getElementById("diskUsage").innerText = diskUsage;
+  document.getElementById("cpuUsage").innerText = cpuUsage;
+  document.getElementById("memoryUsage").innerText = memoryUsage;
+</script>
+
+</body>
+</html>
