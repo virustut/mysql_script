@@ -168,7 +168,7 @@ This assumes that your_target_database already exists.
 The --one-database option does not skip DDL (like CREATE DATABASE) in the dump file; it just ignores execution of statements not matching your database.
 
 ✅ Option 2: Manually Extract Specific Database SQL from the File
-
+	less all_databases_backup.sql
 This is more work, but gives you more control.
 
 ✅ Option 2: Manually Extract Specific Database SQL from the File
@@ -261,6 +261,7 @@ mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND
 
 ----- Restore table data
 mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
