@@ -106,6 +106,23 @@ Explanation of options:
 
 (No --no-data) → means it will also include all rows (data).
 
+================-----------OR----------==============
+
+Option 1: Restore only one_web_dialer database from full dump file
+sed -n '/^-- Current Database: `one_web_dialer`/,/^-- Current Database: `/p' full_backup.sql > one_web_dialer_backup.sql
+
+Example : below command is fibercate the specific database backup from all database backup file .
+[root@localhost MYSQL_Backup]# sed -n '/^-- Current Database: `ONE_WEB_DIALER`/,/^-- Current Database: `/p' /MYSQL_Backup/all_databases_2025-09-23_22-00-01.sql > one_web_dialer_backup.sql
+
+Step 2: Restore the extracted file to MySQL
+mysql -u username -p one_web_dialer < one_web_dialer_backup.sql
+
+================-----------OR----------==============
+
+Option 2: Restore full dump but only database one_web_dialer
+mysql -u username -p --one-database one_web_dialer < all_databases_2025-09-23_22-00-01.sql
+
+
 -------------------------------only one dataase----------------------------
 mysqldump -u root -p mydatabase --routines --triggers --events > mydatabase_full.sql
 
@@ -261,6 +278,7 @@ mysqldump -u root -p --no-create-info --where="calldate BETWEEN '2024-11-15' AND
 
 ----- Restore table data
 mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < calltrans_backup.sql
+
 
 
 
