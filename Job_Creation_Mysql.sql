@@ -31,6 +31,35 @@ END$$
 
 DELIMITER ;
 
+------ the below script will run every day at 2AM
+
+DELIMITER $$
+
+CREATE EVENT IF NOT EXISTS ev_archive_call_details
+ON SCHEDULE EVERY 1 DAY
+STARTS TIMESTAMP(CURRENT_DATE + INTERVAL 1 DAY, '02:00:00')
+DO
+BEGIN
+    -- Move records older than 31 days to backup
+    INSERT INTO call_details_backup
+    SELECT *
+    FROM call_details
+    WHERE call_date < NOW() - INTERVAL 31 DAY;
+
+    -- Delete those records from main table
+    DELETE FROM call_details
+    WHERE call_date < NOW() - INTERVAL 31 DAY;
+
+    -- Delete data older than 365 days from backup
+    DELETE FROM call_details_backup
+    WHERE call_date < NOW() - INTERVAL 365 DAY;
+END$$
+
+DELIMITER ;
+
+
+
+
 ✅ What this does:
 
 Runs every day.
