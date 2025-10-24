@@ -1,0 +1,193 @@
+================================================================================
+           MYSQL DBA PRE-INSTALLATION & POST-INSTALLATION CHECKLIST
+================================================================================
+
+Author: ChatGPT DBA Assistant
+Purpose: Complete proactive + reactive MySQL server checklist for Linux
+================================================================================
+
+
+A. PRE-INSTALLATION CHECKS
+--------------------------
+
+1. SYSTEM & OS PREPARATION
+   ------------------------
+   - Check OS version:              cat /etc/os-release
+   - Check CPU cores:               lscpu
+   - Check RAM:                     free -h
+   - Check disk space:              df -h
+   - Check disk speed:              hdparm -tT /dev/sda
+   - Set hostname:                  hostnamectl set-hostname mysql-server-01
+   - Set timezone:                  timedatectl set-timezone Asia/Kolkata
+   - Update packages:               sudo dnf update -y
+   - Disable unnecessary services:  systemctl list-unit-files --type=service
+
+2. SECURITY & OS HARDENING
+   ------------------------
+   - Create dedicated MySQL user
+   - Disable root SSH login (edit /etc/ssh/sshd_config)
+   - Enable firewall (allow only port 3306)
+   - Disable SELinux if it conflicts: setenforce 0
+   - Set vm.swappiness=1 in /etc/sysctl.conf
+   - Increase open file limits:
+       /etc/security/limits.conf
+         mysql soft nofile 65535
+         mysql hard nofile 65535
+
+3. DISK LAYOUT PLANNING
+   ---------------------
+   - Separate data & log directories (e.g. /mysql/data, /mysql/logs)
+   - Use SSDs for data
+   - Add "noatime" in /etc/fstab
+   - Ensure dedicated space for backups (/backup/mysql/)
+
+
+B. INSTALLATION PHASE
+---------------------
+
+1. INSTALL MYSQL OR PERCONA SERVER
+   -------------------------------
+   sudo dnf install mysql-server -y
+   # or
+   sudo dnf install percona-server-server -y
+   sudo systemctl enable --now mysqld
+
+2. RETRIEVE TEMPORARY ROOT PASSWORD
+   ---------------------------------
+   grep 'temporary password' /var/log/mysqld.log
+
+3. SECURE INSTALLATION
+   --------------------
+   sudo mysql_secure_installation
+     - Set strong root password
+     - Remove anonymous users
+     - Disallow remote root login
+     - Remove test database
+
+
+C. POST-INSTALLATION CONFIGURATION
+----------------------------------
+
+1. BASIC CONFIGURATION (/etc/my.cnf)
+   ---------------------------------
+   [mysqld]
+   bind-address = 0.0.0.0
+   max_connections = 300
+   innodb_buffer_pool_size = 70% of RAM
+   innodb_log_file_size = 512M
+   innodb_flush_method = O_DIRECT
+   innodb_file_per_table = 1
+   innodb_flush_log_at_trx_commit = 2
+   sql_mode = "STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+   max_allowed_packet = 256M
+   event_scheduler = ON
+   log_error = /var/log/mysql/error.log
+   slow_query_log = 1
+   slow_query_log_file = /var/log/mysql/slow.log
+   long_query_time = 2
+
+   Restart MySQL: sudo systemctl restart mysqld
+
+2. CREATE ADMIN USERS
+   -------------------
+   CREATE USER 'dba_admin'@'localhost' IDENTIFIED BY 'StrongPassword@123';
+   GRANT ALL PRIVILEGES ON *.* TO 'dba_admin'@'localhost' WITH GRANT OPTION;
+   FLUSH PRIVILEGES;
+
+3. ENABLE REMOTE ACCESS (Optional)
+   --------------------------------
+   CREATE USER 'dba_admin'@'%' IDENTIFIED BY 'StrongPassword@123';
+   GRANT ALL PRIVILEGES ON *.* TO 'dba_admin'@'%' WITH GRANT OPTION;
+
+   sudo firewall-cmd --permanent --add-port=3306/tcp
+   sudo firewall-cmd --reload
+
+4. BACKUP STRATEGY
+   ----------------
+   - Full Weekly Backup (mysqldump or xtrabackup)
+   - Incremental Daily Backup (Percona XtraBackup)
+   - Logical Backup Example:
+       mysqldump --single-transaction --quick --routines > /backup/db.sql
+   - Automate with cron or MySQL Event Scheduler
+
+5. PERFORMANCE TUNING
+   -------------------
+   innodb_buffer_pool_size  = 70–80% RAM
+   innodb_log_file_size     = 512M–1G
+   innodb_flush_log_at_trx_commit = 2
+   tmp_table_size           = 256M
+   max_heap_table_size      = 256M
+   sort_buffer_size         = 8M
+   join_buffer_size         = 8M
+   table_open_cache         = 2000
+   thread_cache_size        = 64
+
+6. LOGGING & MONITORING
+   ---------------------
+   - Error log:       /var/log/mysql/error.log
+   - Slow query log:  /var/log/mysql/slow.log
+   - Analyze slow queries:
+       mysqldumpslow -s t /var/log/mysql/slow.log
+
+7. MONITORING TOOLS
+   -----------------
+   - Percona Toolkit
+   - mysqltuner.pl
+   - pt-query-digest
+   - Prometheus + Grafana
+
+
+D. PROACTIVE MAINTENANCE TASKS
+------------------------------
+
+| Task | Frequency | Command |
+|------|------------|----------|
+| Check replication status | Daily | SHOW SLAVE STATUS\G |
+| Monitor slow queries | Daily | tail -50 /var/log/mysql/slow.log |
+| Check disk usage | Daily | df -h /mysql |
+| Backup verification | Weekly | Test restore from backup |
+| Optimize tables | Monthly | OPTIMIZE TABLE table_name; |
+| Check error logs | Daily | grep -i "error" /var/log/mysql/error.log |
+| Apply OS/MySQL patches | Monthly | sudo dnf update -y |
+| Review user privileges | Quarterly | SELECT user,host FROM mysql.user; |
+
+
+E. DISASTER RECOVERY READINESS
+-------------------------------
+- Enable Binary Logs for PITR:
+     [mysqld]
+     log_bin = /mysql/binlogs/mysql-bin
+     server_id = 1
+- Test full & incremental restores
+- Maintain offsite backup copies
+- Configure replication if possible
+
+
+F. OPTIONAL ENHANCEMENTS
+------------------------
+| Feature | Tool/Config |
+|----------|-------------|
+| Incremental backups | Percona XtraBackup |
+| Table partitioning | For large tables |
+| Compression | ROW_FORMAT=COMPRESSED |
+| Caching | ProxySQL or Redis |
+| High availability | Replication / Group Replication |
+| Failover automation | MHA, Orchestrator, ProxySQL |
+
+
+G. POST-GO-LIVE MONITORING CHECKLIST
+------------------------------------
+- Check MySQL uptime:       systemctl status mysqld
+- Monitor resource usage:   top / htop (press M for memory)
+- Review slow queries:      mysqldumpslow /var/log/mysql/slow.log
+- Check error log:          tail -n 50 /var/log/mysql/error.log
+- Verify event scheduler:   SHOW EVENTS;
+
+================================================================================
+Summary:
+  Pre-install → OS + hardware + security prep
+  Install → Secure MySQL & enable logs
+  Post-install → Tune configs, create admin users
+  Proactive → Monitor, backup, optimize
+  Reactive → Troubleshoot locks, slow queries, corruption
+================================================================================
