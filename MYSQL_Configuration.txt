@@ -1,0 +1,166 @@
+💻 Command Output
+
+              total        used        free      shared  buff/cache   available
+Mem:            31G        301M         30G         27M        748M         30G
+Swap:          974M          0B        974M
+
+
+🧠 Column Meaning (Hin-English Explanation)
+
+| Column         | Meaning                                   | Hin-English Description                                                             |
+| -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| **total**      | Total system RAM                          | Aapke system me total kitni physical memory hai — yaha 31 GB                        |
+| **used**       | Memory currently in use                   | Abhi OS aur processes 301 MB use kar rahe hain                                      |
+| **free**       | Completely unused memory                  | Bilkul khali RAM — 30 GB free hai                                                   |
+| **shared**     | Memory shared between processes           | 27 MB shared memory (apps ya system components share kar rahe hain)                 |
+| **buff/cache** | Disk buffers & file cache                 | 748 MB Linux ne apne caching ke liye use kiya hua hai (ye actually reclaimable hai) |
+| **available**  | Memory that can be used for new processes | 30 GB RAM available hai new apps ke liye (real free + reclaimable cache)            |
+
+
+💾 Swap Section
+
+| Column         | Meaning                           | Hin-English Description                              |
+| -------------- | --------------------------------- | ---------------------------------------------------- |
+| **Swap total** | Total swap space (virtual memory) | 974 MB (approx. 1 GB) available hai as backup memory |
+| **Swap used**  | Currently used swap               | 0B means koi swap use nahi ho raha (good sign 👍)    |
+| **Swap free**  | Remaining swap space              | Pura 974 MB swap free hai                            |
+
+
+💡 Recommendation for MySQL Configuration
+Since your system has 31 GB RAM, you can safely allocate around 20–24 GB for MySQL.
+
+Example for /etc/my.cnf:
+
+[mysqld]
+innodb_buffer_pool_size = 20G
+innodb_log_file_size = 1G
+innodb_log_buffer_size = 256M
+tmp_table_size = 512M
+max_heap_table_size = 512M
+
+
+
+⚙️ Step 1: Login to MySQL
+mysql -u root -p
+
+
+⚙️ Step 2: Apply Temporary Configuration
+
+Run these inside the MySQL prompt (mysql>) 👇
+-- 20GB memory for caching data & indexes
+SET GLOBAL innodb_buffer_pool_size = 21474836480;  -- 20G in bytes
+
+-- Redo log file size (not dynamic in runtime)
+-- (NOTE: You must change this in my.cnf and restart MySQL for it to take effect)
+-- innodb_log_file_size = 1G
+
+-- Transaction log buffer (dynamic)
+SET GLOBAL innodb_log_buffer_size = 268435456;     -- 256M in bytes
+
+-- Temporary table memory size (dynamic)
+SET GLOBAL tmp_table_size = 536870912;             -- 512M
+SET GLOBAL max_heap_table_size = 536870912;        -- 512M
+
+-- Optional: Slightly reduce flush overhead for better performance
+SET GLOBAL innodb_flush_log_at_trx_commit = 2;
+
+
+⚙️ Step 3: Verify the Changes
+
+Run this to confirm:
+SHOW VARIABLES WHERE VARIABLE_NAME IN (
+'innodb_buffer_pool_size',
+'innodb_log_buffer_size',
+'tmp_table_size',
+'max_heap_table_size',
+'innodb_flush_log_at_trx_commit'
+);
+
+
+⚠️ Important Notes
+
+When MySQL restarts → all these SET GLOBAL changes reset to default/my.cnf.
+
+To make them permanent, add them to /etc/my.cnf under [mysqld].
+
+NOTE :
+Delete & backup a large amount of data safely
+
+Optimize MySQL temporarily (runtime) for this heavy DML (delete/insert) work
+
+No MySQL restart
+
+Let’s do this step-by-step cleanly and safely 👇
+
+🧠 Goal
+
+We’ll make MySQL handle large DELETE and INSERT (backup) operations smoothly by adjusting only runtime settings — no restart needed.
+⚙️ Step 1: Login to MySQL
+mysql -u root -p
+
+⚙️ Step 2: Apply Temporary Optimized Settings
+
+Run all these inside MySQL (mysql> prompt):
+-- ✅ Increase buffer pool (more cache for data)
+SET GLOBAL innodb_buffer_pool_size = 17179869184;     -- 16G
+
+-- ✅ Increase transaction log buffer (reduce flushing)
+SET GLOBAL innodb_log_buffer_size = 268435456;         -- 256M
+
+-- ✅ Increase temporary table sizes (for big queries)
+SET GLOBAL tmp_table_size = 536870912;                 -- 512M
+SET GLOBAL max_heap_table_size = 536870912;            -- 512M
+
+-- ✅ Make commit flush less aggressive (improves delete/insert speed)
+SET GLOBAL innodb_flush_log_at_trx_commit = 2;
+
+-- ✅ Give longer wait before lock timeout
+SET GLOBAL innodb_lock_wait_timeout = 300;
+
+-- ✅ Make InnoDB flush more efficiently
+SET GLOBAL innodb_io_capacity = 2000;
+SET GLOBAL innodb_io_capacity_max = 4000;
+
+-- ✅ If you’re deleting millions of rows, disable foreign key checks temporarily
+SET GLOBAL foreign_key_checks = 0;
+
+💡 All these are temporary: They’ll reset when MySQL restarts.
+
+⚙️ Step 3: Run Your Backup & Delete Logic Safely
+Example – Move old data to backup table (in batches):
+
+-- Insert old records into backup table
+INSERT INTO call_details_backup
+SELECT *
+FROM call_details
+WHERE call_date < NOW() - INTERVAL 30 DAY
+LIMIT 50000;
+
+-- Delete same data from main table
+DELETE FROM call_details
+WHERE call_date < NOW() - INTERVAL 30 DAY
+LIMIT 50000;
+
+
+⚙️ Step 4: Verify Changes Are Active
+
+Check:
+SHOW VARIABLES WHERE VARIABLE_NAME IN (
+'innodb_buffer_pool_size',
+'innodb_log_buffer_size',
+'tmp_table_size',
+'max_heap_table_size',
+'innodb_flush_log_at_trx_commit',
+'innodb_lock_wait_timeout'
+);
+
+
+🧹 Step 5: Restore Normal Settings (Optional After Deletion)
+
+After deletion/backup completes, you can restore safe defaults:
+
+SET GLOBAL innodb_flush_log_at_trx_commit = 1;
+SET GLOBAL foreign_key_checks = 1;
+
+
+
