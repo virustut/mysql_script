@@ -1,0 +1,319 @@
+===========================================
+🎯 30-Day MySQL DBA Roadmap (For MSSQL DBAs)
+===========================================
+
+Author: ChatGPT (GPT-5)
+Goal: Become a Production-Ready MySQL DBA (Open Source)
+Duration: 30 Days
+Focus: Linux + MySQL 8.x + Percona Tools
+
+-------------------------------------------
+WEEK 1️⃣: MySQL Fundamentals & Architecture
+-------------------------------------------
+
+DAY 1 – Installation & Basics
+-----------------------------
+✅ Topics:
+- Install MySQL 8.0 or Percona Server on Linux
+- Start/stop MySQL service
+- Login & basic commands
+
+🧪 Practice:
+sudo apt install mysql-server -y
+sudo systemctl start mysql
+mysql -u root -p
+SHOW DATABASES;
+
+DAY 2 – MySQL Architecture Overview
+-----------------------------------
+✅ Topics:
+- MySQL architecture (client, server, storage engines)
+- InnoDB vs MyISAM
+- Data directory structure
+
+🧪 Practice:
+SHOW ENGINES;
+SHOW VARIABLES LIKE 'datadir';
+
+DAY 3 – Configuration Files
+---------------------------
+✅ Topics:
+- /etc/my.cnf configuration
+- Key settings: innodb_buffer_pool_size, max_connections, log_error
+
+🧪 Practice:
+cat /etc/my.cnf
+SHOW VARIABLES LIKE '%innodb_buffer%';
+
+DAY 4 – MySQL Command-Line Tools
+--------------------------------
+✅ Topics:
+- mysql, mysqladmin, mysqldump, mysqlshow
+- Connecting remotely
+
+🧪 Practice:
+mysqladmin version
+mysqlshow
+
+DAY 5 – Databases, Tables, and Data Types
+-----------------------------------------
+✅ Topics:
+- Creating databases and tables
+- MySQL vs MSSQL data types
+
+🧪 Practice:
+CREATE DATABASE testdb;
+USE testdb;
+CREATE TABLE employees(id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50), hire_date DATE);
+
+DAY 6 – CRUD Operations & Transactions
+--------------------------------------
+✅ Topics:
+- SELECT, INSERT, UPDATE, DELETE
+- Transactions and rollback
+
+🧪 Practice:
+START TRANSACTION;
+DELETE FROM employees WHERE id=1;
+ROLLBACK;
+
+DAY 7 – Constraints & Indexes
+-----------------------------
+✅ Topics:
+- PRIMARY, FOREIGN keys
+- Indexes, UNIQUE, FULLTEXT
+
+🧪 Practice:
+CREATE INDEX idx_name ON employees(name);
+SHOW INDEX FROM employees;
+
+-------------------------------------------
+WEEK 2️⃣: Administration & Maintenance
+-------------------------------------------
+
+DAY 8 – User Management & Security
+----------------------------------
+✅ Topics:
+- CREATE USER, GRANT, REVOKE
+- Password plugins
+
+🧪 Practice:
+CREATE USER 'dba'@'%' IDENTIFIED BY 'Password123';
+GRANT ALL PRIVILEGES ON *.* TO 'dba'@'%';
+
+DAY 9 – Backup & Restore (mysqldump)
+------------------------------------
+✅ Topics:
+- Logical backups
+- Import/export
+
+🧪 Practice:
+mysqldump -u root -p testdb > testdb.sql
+mysql -u root -p testdb < testdb.sql
+
+DAY 10 – Physical Backup (Percona XtraBackup)
+---------------------------------------------
+✅ Topics:
+- Hot backups, incremental backups
+
+🧪 Practice:
+xtrabackup --backup --target-dir=/backup/full_$(date +%F)
+
+DAY 11 – Restore Scenarios
+--------------------------
+✅ Topics:
+- Point-in-time recovery using binary logs
+
+🧪 Practice:
+mysqlbinlog binlog.000001 > restore.sql
+
+DAY 12 – Binary Logs & Slow Logs
+--------------------------------
+✅ Topics:
+- Enable binlogs
+- Analyze slow queries
+
+🧪 Practice:
+[mysqld]
+log_bin = mysql-bin
+slow_query_log = 1
+
+DAY 13 – Storage Engines Deep Dive
+----------------------------------
+✅ Topics:
+- InnoDB file structure, buffer pool, redo/undo logs
+
+🧪 Practice:
+SHOW ENGINE INNODB STATUS\G;
+
+DAY 14 – Maintenance Tasks
+--------------------------
+✅ Topics:
+- Optimize, repair, analyze tables
+
+🧪 Practice:
+OPTIMIZE TABLE employees;
+ANALYZE TABLE employees;
+
+-------------------------------------------
+WEEK 3️⃣: Performance Tuning & Replication
+-------------------------------------------
+
+DAY 15 – Query Optimization Basics
+----------------------------------
+✅ Topics:
+- Using EXPLAIN and query plans
+
+🧪 Practice:
+EXPLAIN SELECT * FROM employees WHERE name='John';
+
+DAY 16 – InnoDB Performance Tuning
+----------------------------------
+✅ Topics:
+- Buffer pool, redo logs, I/O threads
+
+🧪 Practice:
+SHOW VARIABLES LIKE 'innodb_%';
+
+DAY 17 – Index Optimization
+---------------------------
+✅ Topics:
+- Covering and composite indexes
+
+🧪 Practice:
+SHOW INDEX FROM employees;
+
+DAY 18 – Replication Setup
+--------------------------
+✅ Topics:
+- Master → Replica replication
+
+🧪 Practice:
+CHANGE MASTER TO MASTER_HOST='replica_ip', MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=120;
+
+DAY 19 – Replication Troubleshooting
+------------------------------------
+✅ Topics:
+- Lag, skipped transactions, relay logs
+
+🧪 Practice:
+SHOW SLAVE STATUS\G;
+
+DAY 20 – Event Scheduler & Cron Jobs
+------------------------------------
+✅ Topics:
+- Automating tasks using events
+
+🧪 Practice:
+CREATE EVENT ev_cleanup
+ON SCHEDULE EVERY 1 DAY
+DO DELETE FROM logs WHERE created < NOW() - INTERVAL 30 DAY;
+
+-------------------------------------------
+WEEK 4️⃣: Advanced DBA & Monitoring
+-------------------------------------------
+
+DAY 21 – Performance Schema
+---------------------------
+✅ Topics:
+- Monitoring queries, waits, I/O
+
+🧪 Practice:
+SELECT * FROM performance_schema.events_statements_summary_by_digest ORDER BY COUNT_STAR DESC LIMIT 10;
+
+DAY 22 – Percona Toolkit
+------------------------
+✅ Topics:
+- pt-query-digest, pt-mysql-summary
+
+🧪 Practice:
+pt-query-digest /var/log/mysql/slow.log
+
+DAY 23 – MySQL Tuning & Optimization
+-----------------------------------
+✅ Topics:
+- mysqltuner.pl and sys schema
+
+🧪 Practice:
+perl mysqltuner.pl
+
+DAY 24 – High Availability (HA)
+-------------------------------
+✅ Topics:
+- MySQL Group Replication, InnoDB Cluster
+
+DAY 25 – Monitoring Tools
+-------------------------
+✅ Topics:
+- PMM, Grafana, Prometheus
+
+DAY 26 – Security Best Practices
+--------------------------------
+✅ Topics:
+- SSL/TLS, password policy, removing anonymous users
+
+DAY 27 – Partitioning & Archiving
+---------------------------------
+✅ Topics:
+- Range & List partitions
+
+🧪 Practice:
+ALTER TABLE call_logs PARTITION BY RANGE(YEAR(call_date)) (
+  PARTITION p2024 VALUES LESS THAN (2025),
+  PARTITION p2025 VALUES LESS THAN MAXVALUE
+);
+
+DAY 28 – Troubleshooting & Error Logs
+-------------------------------------
+✅ Topics:
+- Reading error.log, deadlocks, crash recovery
+
+DAY 29 – Backup Automation
+--------------------------
+✅ Topics:
+- Bash + cron job scripts for backup rotation
+
+DAY 30 – Real-Time Project
+--------------------------
+✅ Tasks:
+- Setup replication
+- Automate backups
+- Monitor performance
+- Simulate recovery
+
+-------------------------------------------
+🧠 AFTER 30 DAYS — YOU WILL BE ABLE TO:
+-------------------------------------------
+✅ Install & configure MySQL from scratch
+✅ Manage users, privileges, and security
+✅ Perform hot backups & PITR
+✅ Tune MySQL performance like a pro
+✅ Automate maintenance tasks
+✅ Set up HA replication
+✅ Troubleshoot performance & replication issues
+
+-------------------------------------------
+📚 RECOMMENDED TOOLS:
+-------------------------------------------
+- MySQL Workbench
+- Percona XtraBackup
+- Percona Toolkit
+- PMM (Percona Monitoring & Management)
+- mysqltuner.pl
+- ProxySQL
+
+-------------------------------------------
+💡 PRO TIP:
+-------------------------------------------
+As an MSSQL DBA, focus on:
+- InnoDB tuning
+- Backup & recovery (XtraBackup)
+- Replication & HA
+- Linux scripting (bash + cron)
+- Monitoring & performance_schema
+
+-------------------------------------------
+Optional Certifications:
+-------------------------------------------
+- Oracle Certified MySQL 8.0 DBA
+- Percona Certif
