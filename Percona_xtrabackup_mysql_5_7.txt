@@ -1,0 +1,90 @@
+==========================================================
+ Guide: Install Percona XtraBackup 2.4 for MySQL 5.7
+ OS: Ubuntu 16.04
+==========================================================
+
+Author: ChatGPT (GPT-5)
+Date: 2025-10-27
+
+----------------------------------------------------------
+1️⃣ Check MySQL Version
+----------------------------------------------------------
+mysql --version
+# Expected output:
+# mysql  Ver 14.14 Distrib 5.7.33-0ubuntu0.16.04.1
+
+✅ Since it’s MySQL 5.7 → you must install Percona XtraBackup 2.4
+
+----------------------------------------------------------
+2️⃣ Update System and Install Tools
+----------------------------------------------------------
+sudo apt-get update
+sudo apt-get install -y gnupg2 curl lsb-release
+
+----------------------------------------------------------
+3️⃣ Add Percona APT Repository
+----------------------------------------------------------
+curl -OL https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb
+sudo dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
+
+----------------------------------------------------------
+4️⃣ Enable the Tools Repository
+----------------------------------------------------------
+sudo percona-release enable tools release
+sudo apt-get update
+
+----------------------------------------------------------
+5️⃣ Install Percona XtraBackup 2.4
+----------------------------------------------------------
+sudo apt-get install percona-xtrabackup-24
+
+----------------------------------------------------------
+6️⃣ Verify Installation
+----------------------------------------------------------
+xtrabackup --version
+
+# Example output:
+# xtrabackup version 2.4.29 based on MySQL server 5.7.44 Linux (x86_64)
+
+----------------------------------------------------------
+7️⃣ Test a Backup (Optional)
+----------------------------------------------------------
+sudo mkdir -p /backup/test
+
+# Run backup
+sudo xtrabackup --backup --target-dir=/backup/test --user=root --password='yourpassword'
+
+# Prepare backup
+sudo xtrabackup --prepare --target-dir=/backup/test
+
+# Restore backup (use carefully)
+sudo xtrabackup --copy-back --target-dir=/backup/test
+
+----------------------------------------------------------
+8️⃣ Check Installed Packages (Optional)
+----------------------------------------------------------
+apt list --installed | grep percona
+
+----------------------------------------------------------
+✅ Summary
+----------------------------------------------------------
+| Component             | Your Setup                     |
+|------------------------|--------------------------------|
+| OS                    | Ubuntu 16.04                   |
+| MySQL Version         | 5.7.33                         |
+| Compatible XtraBackup | Percona XtraBackup 2.4.x       |
+| Install Command        | sudo apt-get install percona-xtrabackup-24 |
+| Verify Command         | xtrabackup --version           |
+
+----------------------------------------------------------
+Notes
+----------------------------------------------------------
+- PXB 2.4 supports MySQL 5.6 and 5.7 only.
+- PXB 8.0 supports MySQL 8.0+ only.
+- Use XtraBackup 2.4.29 or later for MySQL 5.7.33.
+- Always test backups before using in production.
+- For automatic backups, you can schedule via cron or MySQL events.
+
+==========================================================
+End of File
+==========================================================
