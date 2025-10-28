@@ -68,13 +68,37 @@ loose-group_replication_bootstrap_group=off
 [mysqld]
 server_id=2
 report_host=192.168.0.12
-... (same settings except local_address and report_host update)
+binlog_checksum=NONE
+gtid_mode=ON
+enforce_gtid_consistency=ON
+log_bin=binlog
+binlog_format=ROW
+disabled_storage_engines="MyISAM,BLACKHOLE,FEDERATED,ARCHIVE,MEMORY"
+transaction_write_set_extraction=XXHASH64
+loose-group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+loose-group_replication_start_on_boot=off
+loose-group_replication_local_address="192.168.0.12:24901"
+loose-group_replication_group_seeds="192.168.0.11:24901,192.168.0.12:24901,192.168.0.13:24901"
+loose-group_replication_bootstrap_group=off
+
 
 ### Node3 (192.168.0.13)
 [mysqld]
 server_id=3
 report_host=192.168.0.13
-... (same settings except local_address and report_host update)
+binlog_checksum=NONE
+gtid_mode=ON
+enforce_gtid_consistency=ON
+log_bin=binlog
+binlog_format=ROW
+disabled_storage_engines="MyISAM,BLACKHOLE,FEDERATED,ARCHIVE,MEMORY"
+transaction_write_set_extraction=XXHASH64
+loose-group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+loose-group_replication_start_on_boot=off
+loose-group_replication_local_address="192.168.0.13:24901"
+loose-group_replication_group_seeds="192.168.0.11:24901,192.168.0.12:24901,192.168.0.13:24901"
+loose-group_replication_bootstrap_group=off
+
 
 Restart all:
 sudo systemctl restart mysql
@@ -153,6 +177,11 @@ Example Output:
   }
 }
 
+🧠  Check Cluster Status Anytime
+mysqlsh clusteradmin@192.168.0.11 -- cluster status
+
+
+
 ===========================================================
 8️⃣ OPTIONAL — HIGH AVAILABILITY FOR ROUTER
 ===========================================================
@@ -192,7 +221,7 @@ App → VIP (HAProxy) → Routers → Cluster
 | Type | Host | Port | Description |
 |------|------|------|-------------|
 | Read/Write | 192.168.0.10 | 6446 | Routes to current PRIMARY |
-| Read-Only | 192.168.0.10 | 6447 | Routes to replicas |
+| Read-Only  | 192.168.0.10 | 6447 | Routes to replicas        |
 
 ✅ Optional:
 - Add another router for high availability
