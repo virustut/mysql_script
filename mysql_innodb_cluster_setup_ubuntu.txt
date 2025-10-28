@@ -1,0 +1,203 @@
+===========================================================
+ MYSQL INNODB CLUSTER + ROUTER SETUP (4-SERVER CONFIG)
+ Ubuntu 22.04 | MySQL 8.0+
+===========================================================
+
+ARCHITECTURE OVERVIEW
+---------------------
+| Server | IP Address   | Role                      |
+|---------|--------------|---------------------------|
+| Node1   | 192.168.0.11 | MySQL Server (Primary)    |
+| Node2   | 192.168.0.12 | MySQL Server (Replica)    |
+| Node3   | 192.168.0.13 | MySQL Server (Replica)    |
+| Router  | 192.168.0.10 | MySQL Router (App entry)  |
+
+===========================================================
+1️⃣ PREREQUISITES (RUN ON ALL NODES)
+===========================================================
+
+sudo apt update
+sudo apt install mysql-server mysql-shell -y
+
+# Enable service
+sudo systemctl enable mysql
+sudo systemctl start mysql
+
+# Allow network access
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+(change)
+bind-address = 0.0.0.0
+
+sudo systemctl restart mysql
+
+===========================================================
+2️⃣ CREATE CLUSTER ADMIN USER (RUN ON ALL 3 MYSQL NODES)
+===========================================================
+
+mysql -u root -p
+
+CREATE USER 'clusteradmin'@'%' IDENTIFIED BY 'StrongPass@123';
+GRANT ALL PRIVILEGES ON *.* TO 'clusteradmin'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EXIT;
+
+===========================================================
+3️⃣ CONFIGURE EACH MYSQL NODE
+===========================================================
+
+### Node1 (192.168.0.11)
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+[mysqld]
+server_id=1
+report_host=192.168.0.11
+binlog_checksum=NONE
+gtid_mode=ON
+enforce_gtid_consistency=ON
+log_bin=binlog
+binlog_format=ROW
+disabled_storage_engines="MyISAM,BLACKHOLE,FEDERATED,ARCHIVE,MEMORY"
+transaction_write_set_extraction=XXHASH64
+loose-group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+loose-group_replication_start_on_boot=off
+loose-group_replication_local_address="192.168.0.11:24901"
+loose-group_replication_group_seeds="192.168.0.11:24901,192.168.0.12:24901,192.168.0.13:24901"
+loose-group_replication_bootstrap_group=off
+
+### Node2 (192.168.0.12)
+[mysqld]
+server_id=2
+report_host=192.168.0.12
+... (same settings except local_address and report_host update)
+
+### Node3 (192.168.0.13)
+[mysqld]
+server_id=3
+report_host=192.168.0.13
+... (same settings except local_address and report_host update)
+
+Restart all:
+sudo systemctl restart mysql
+
+===========================================================
+4️⃣ CREATE AND CONFIGURE THE CLUSTER (ON NODE1)
+===========================================================
+
+mysqlsh clusteradmin@192.168.0.11
+
+\js
+
+// Create the cluster
+var cluster = dba.createCluster('ProdCluster');
+
+// Add the other two nodes
+cluster.addInstance('clusteradmin@192.168.0.12');
+cluster.addInstance('clusteradmin@192.168.0.13');
+
+// Check status
+cluster.status();
+
+Expected output:
+Cluster name: ProdCluster
+Primary: 192.168.0.11
+Secondaries: 192.168.0.12, 192.168.0.13
+Status: OK
+
+===========================================================
+5️⃣ CONFIGURE MYSQL ROUTER (ON 192.168.0.10)
+===========================================================
+
+sudo apt install mysql-router -y
+
+# Bootstrap router to the cluster
+mysqlrouter --bootstrap clusteradmin@192.168.0.11 --directory /etc/mysqlrouter --user=mysqlrouter
+
+# Start router
+sudo systemctl enable mysqlrouter
+sudo systemctl start mysqlrouter
+sudo systemctl status mysqlrouter
+
+===========================================================
+6️⃣ ROUTER CONNECTION PORTS
+===========================================================
+
+| Port | Purpose | Target Node |
+|-------|----------|-------------|
+| 6446  | Read/Write | Primary node |
+| 6447  | Read-Only  | Replica nodes |
+
+Application should connect to:
+- WRITE: 192.168.0.10:6446
+- READ:  192.168.0.10:6447
+
+===========================================================
+7️⃣ VERIFY CLUSTER HEALTH
+===========================================================
+
+From any node:
+
+mysqlsh clusteradmin@192.168.0.11 -- cluster status
+
+Example Output:
+{
+  "clusterName": "ProdCluster",
+  "defaultReplicaSet": {
+    "name": "default",
+    "primary": "192.168.0.11:3306",
+    "status": "OK",
+    "topology": {
+      "192.168.0.11:3306": {"role":"PRIMARY"},
+      "192.168.0.12:3306": {"role":"SECONDARY"},
+      "192.168.0.13:3306": {"role":"SECONDARY"}
+    }
+  }
+}
+
+===========================================================
+8️⃣ OPTIONAL — HIGH AVAILABILITY FOR ROUTER
+===========================================================
+
+For production, deploy 2 routers for redundancy:
+| Router1 | 192.168.0.10 |
+| Router2 | 192.168.0.14 |
+
+Use HAProxy or Keepalived in front of them:
+App → VIP (HAProxy) → Routers → Cluster
+
+===========================================================
+9️⃣ ROUTER RESOURCE REQUIREMENTS
+===========================================================
+- CPU: 1 vCPU
+- RAM: 100–200 MB
+- Disk: < 200 MB
+- OS: Ubuntu 22.04 or similar
+- Lightweight and stateless
+
+===========================================================
+🔍 SUMMARY
+===========================================================
+
+✅ You have deployed:
+- 3 MySQL nodes with Group Replication (InnoDB Cluster)
+- 1 Router node as the central access point
+
+✅ Benefits:
+- Automatic failover and self-healing
+- Centralized access (single endpoint)
+- Read/write splitting via router ports
+- No downtime during node failure
+- Seamless scalability (add more nodes anytime)
+
+✅ Connection Summary:
+| Type | Host | Port | Description |
+|------|------|------|-------------|
+| Read/Write | 192.168.0.10 | 6446 | Routes to current PRIMARY |
+| Read-Only | 192.168.0.10 | 6447 | Routes to replicas |
+
+✅ Optional:
+- Add another router for high availability
+- Use HAProxy or Keepalived for load balancing
+
+===========================================================
+END OF FILE
+===========================================================
