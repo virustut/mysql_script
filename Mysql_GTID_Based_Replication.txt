@@ -1,0 +1,124 @@
+===========================
+MYSQL REPLICATION & GTID SETUP GUIDE
+===========================
+
+1️⃣ PREREQUISITES
+- MySQL 5.6+ (preferably 5.7+ or 8.0 for GTID replication)
+- At least two servers (Master and Slave)
+- Unique server_id on each server
+- Network connectivity between servers
+- Sufficient privileges for replication user
+
+---
+
+2️⃣ CONFIGURE THE MASTER SERVER
+
+Edit my.cnf (or mysqld.cnf):
+
+[mysqld]
+server-id=1
+log_bin=/var/log/mysql/mysql-bin.log
+binlog_format=ROW          # Recommended for GTID
+gtid_mode=ON               # Enable GTID
+enforce_gtid_consistency=ON
+
+Restart MySQL:
+sudo systemctl restart mysql
+
+---
+
+3️⃣ CREATE REPLICATION USER
+
+SQL on master:
+
+CREATE USER 'repl'@'%' IDENTIFIED BY 'password';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+
+---
+
+4️⃣ GET MASTER STATUS
+
+SHOW MASTER STATUS\G
+
+Output example:
+
+File: mysql-bin.000001
+Position: 154
+Binlog_Do_DB: your_database
+Executed_Gtid_Set: 3e11fa47-71ca-11e1-9e33-c80aa9429562:1-42
+
+> GTID replication uses Executed_Gtid_Set instead of file/position.
+
+---
+
+5️⃣ CONFIGURE THE SLAVE SERVER
+
+Edit my.cnf:
+
+[mysqld]
+server-id=2
+relay_log=/var/log/mysql/mysql-relay-bin.log
+log_bin=/var/log/mysql/mysql-bin.log   # optional if this server will act as master
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+Restart MySQL:
+sudo systemctl restart mysql
+
+---
+
+6️⃣ SET UP THE SLAVE WITH GTID
+
+SQL on slave:
+
+CHANGE MASTER TO
+MASTER_HOST='master_ip',
+MASTER_USER='repl',
+MASTER_PASSWORD='password',
+MASTER_AUTO_POSITION=1;
+
+START SLAVE;
+
+---
+
+7️⃣ VERIFY REPLICATION
+
+SHOW SLAVE STATUS\G
+
+Check:
+- Slave_IO_Running: Yes
+- Slave_SQL_Running: Yes
+- Seconds_Behind_Master: 0
+- Last_Error: <empty>
+
+---
+
+8️⃣ OPTIONAL: REPLICATE SPECIFIC DATABASES
+
+On master:
+binlog_do_db=your_database      # replicate only this DB
+# OR
+binlog_ignore_db=other_db       # ignore specific DB
+
+---
+
+9️⃣ NOTES / BEST PRACTICES
+
+- GTID replication allows easy failover without worrying about file/position.
+- Use ROW-based binlogs for safety.
+- Always backup master before replication setup.
+- You can cascade slaves with GTID.
+- Event scheduler must be ON for scheduled events:
+  SET GLOBAL event_scheduler = ON;
+
+---
+
+10️⃣ REFERENCES
+
+- MySQL Official Docs: https://dev.mysql.com/doc/refman/8.0/en/replication.html
+- GTID replication: https://dev.mysql.com/doc/refman/8.0/en/replication-gtids.html
+
+===========================
+END OF GUIDE
+===========================
