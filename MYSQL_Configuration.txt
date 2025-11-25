@@ -162,5 +162,27 @@ After deletion/backup completes, you can restore safe defaults:
 SET GLOBAL innodb_flush_log_at_trx_commit = 1;
 SET GLOBAL foreign_key_checks = 1;
 
+🔒 Parameters that absolutely require restart
+
+| Parameter                    | Restart Required |
+| ---------------------------- | ---------------- |
+| **innodb_buffer_pool_size**  | ✔ ALWAYS         |
+| innodb_log_file_size         | ✔                |
+| innodb_buffer_pool_instances | ✔                |
+| innodb_page_size             | ✔                |
+| character_set_server         | ✔                |
+
+
+✔ Dynamic Parameters (No restart needed)
+
+| Parameter                      | Restart Required? |
+| ------------------------------ | ----------------- |
+| max_connections                | ❌ No              |
+| tmp_table_size                 | ❌ No              |
+| max_heap_table_size            | ❌ No              |
+| innodb_flush_log_at_trx_commit | ❌ No              |
+| slow_query_log (enable only)   | ❌ No              |
+| innodb_read_io_threads         | ❌ No              |
+| innodb_write_io_threads        | ❌ No              |
 
 
