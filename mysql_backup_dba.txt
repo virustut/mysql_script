@@ -281,6 +281,43 @@ mysql -u root -p  new_ui_voiceanalytics(db_name where we want to restore)   < ca
 
 
 
+---------Take backup except system db
+Option 1: Run directly in terminal 
+for db in $(mysql -u root -pYOURPASS -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('mysql','information_schema','performance_schema','sys');"); do
+  mysqldump -u root -pYOURPASS --routines --triggers --events --single-transaction $db > /backup/$db.sql
+done
+
+Replace YOURPASS with your MySQL password.
+
+Make sure /backup/ exists and is writable.
+
+Option 2: Save as a bash script
+create a file 
+nano /home/user/mysql_backup.sh
+
+Paste the script:
+#!/bin/bash
+
+MYSQL_USER="root"
+MYSQL_PASS="YOURPASS"
+BACKUP_DIR="/backup"
+
+mkdir -p $BACKUP_DIR
+
+for db in $(mysql -u $MYSQL_USER -p$MYSQL_PASS -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('mysql','information_schema','performance_schema','sys');"); do
+  echo "Backing up $db..."
+  mysqldump -u $MYSQL_USER -p$MYSQL_PASS --routines --triggers --events --single-transaction $db > $BACKUP_DIR/$db.sql
+done
+
+echo "Backup completed!"
+
+
+Make it executable:
+chmod +x /home/user/mysql_backup.sh
+
+Run any time
+/home/user/mysql_backup.sh
+
 
 
 
