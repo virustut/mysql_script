@@ -1,0 +1,549 @@
+# MySQL Master-Slave Replication with High Availability
+
+## Architecture Overview
+
+```
+┌─────────────┐
+│   Master    │ (Primary Write Node)
+│  MySQL-01   │
+└──────┬──────┘
+       │ Replication
+       ├──────────────┬──────────────┐
+       │              │              │
+┌──────▼──────┐ ┌────▼──────┐ ┌────▼──────┐
+│   Slave-1   │ │  Slave-2  │ │  Slave-3  │
+│  MySQL-02   │ │ MySQL-03  │ │ MySQL-04  │
+└─────────────┘ └───────────┘ └───────────┘
+```
+
+## Step 1: Master Configuration
+
+### /etc/mysql/my.cnf (Master Server)
+
+```ini
+[mysqld]
+server-id = 1
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-do-db = your_database_name
+binlog-format = ROW
+max_binlog_size = 100M
+expire_logs_days = 7
+
+# High Availability Settings
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_slave_updates = ON
+
+# Performance
+sync_binlog = 1
+innodb_flush_log_at_trx_commit = 1
+
+# Network
+bind-address = 0.0.0.0
+port = 3306
+```
+
+### Master Setup Commands
+
+```sql
+-- Create replication user
+CREATE USER 'repl_user'@'%' IDENTIFIED BY 'StrongPassword123!';
+GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+FLUSH PRIVILEGES;
+
+-- Check master status
+SHOW MASTER STATUS;
+-- Note the File and Position values
+```
+
+## Step 2: Slave Configuration
+
+### /etc/mysql/my.cnf (Slave Servers)
+
+```ini
+[mysqld]
+server-id = 2  # Use 3, 4, etc. for other slaves
+log-bin = /var/log/mysql/mysql-bin.log
+relay-log = /var/log/mysql/relay-bin
+binlog-format = ROW
+
+# High Availability Settings
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_slave_updates = ON
+read_only = ON  # Prevents writes to slave
+
+# Auto-positioning for easier failover
+master_info_repository = TABLE
+relay_log_info_repository = TABLE
+relay_log_recovery = ON
+
+# Network
+bind-address = 0.0.0.0
+port = 3306
+```
+
+### Slave Setup Commands
+
+```sql
+-- Stop slave if running
+STOP SLAVE;
+
+-- Configure master connection (with GTID)
+CHANGE MASTER TO
+  MASTER_HOST='master_ip_address',
+  MASTER_USER='repl_user',
+  MASTER_PASSWORD='StrongPassword123!',
+  MASTER_AUTO_POSITION=1;
+
+-- Start replication
+START SLAVE;
+
+-- Verify slave status
+SHOW SLAVE STATUS\G
+-- Check: Slave_IO_Running: Yes
+-- Check: Slave_SQL_Running: Yes
+```
+
+## Step 3: Automatic Failover Script
+
+Save as `mysql_ha_monitor.py`:
+
+```python
+#!/usr/bin/env python3
+import mysql.connector
+import time
+import smtplib
+import subprocess
+from email.mime.text import MIMEText
+from datetime import datetime
+
+# Configuration
+MASTER_HOST = '192.168.1.10'
+SLAVE_HOSTS = ['192.168.1.11', '192.168.1.12']
+DB_USER = 'monitor_user'
+DB_PASSWORD = 'MonitorPass123!'
+CHECK_INTERVAL = 10  # seconds
+MAX_RETRIES = 3
+
+# Email notifications
+SMTP_SERVER = 'smtp.gmail.com'
+SMTP_PORT = 587
+EMAIL_FROM = 'alerts@yourcompany.com'
+EMAIL_TO = 'admin@yourcompany.com'
+EMAIL_PASSWORD = 'your_email_password'
+
+def send_alert(subject, message):
+    """Send email alert"""
+    try:
+        msg = MIMEText(message)
+        msg['Subject'] = subject
+        msg['From'] = EMAIL_FROM
+        msg['To'] = EMAIL_TO
+        
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_FROM, EMAIL_PASSWORD)
+            server.send_message(msg)
+        print(f"Alert sent: {subject}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+def check_mysql_connection(host):
+    """Check if MySQL is accessible"""
+    try:
+        conn = mysql.connector.connect(
+            host=host,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            connection_timeout=5
+        )
+        conn.close()
+        return True
+    except:
+        return False
+
+def get_slave_status(host):
+    """Get replication status from slave"""
+    try:
+        conn = mysql.connector.connect(
+            host=host,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SHOW SLAVE STATUS")
+        status = cursor.fetchone()
+        conn.close()
+        return status
+    except Exception as e:
+        print(f"Error getting slave status from {host}: {e}")
+        return None
+
+def promote_slave_to_master(slave_host):
+    """Promote a slave to master"""
+    try:
+        print(f"Promoting {slave_host} to master...")
+        
+        conn = mysql.connector.connect(
+            host=slave_host,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        # Stop slave replication
+        cursor.execute("STOP SLAVE")
+        
+        # Reset slave configuration
+        cursor.execute("RESET SLAVE ALL")
+        
+        # Make it writable
+        cursor.execute("SET GLOBAL read_only = OFF")
+        cursor.execute("SET GLOBAL super_read_only = OFF")
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"Successfully promoted {slave_host} to master")
+        send_alert(
+            "MySQL Failover: New Master Promoted",
+            f"Slave {slave_host} has been promoted to master at {datetime.now()}"
+        )
+        return True
+        
+    except Exception as e:
+        print(f"Error promoting slave {slave_host}: {e}")
+        send_alert(
+            "MySQL Failover: FAILED",
+            f"Failed to promote {slave_host} to master: {e}"
+        )
+        return False
+
+def reconfigure_remaining_slaves(new_master, remaining_slaves):
+    """Point remaining slaves to new master"""
+    for slave_host in remaining_slaves:
+        try:
+            print(f"Reconfiguring {slave_host} to replicate from {new_master}")
+            
+            conn = mysql.connector.connect(
+                host=slave_host,
+                user=DB_USER,
+                password=DB_PASSWORD
+            )
+            cursor = conn.cursor()
+            
+            # Stop current replication
+            cursor.execute("STOP SLAVE")
+            
+            # Point to new master
+            change_master_sql = f"""
+            CHANGE MASTER TO
+                MASTER_HOST='{new_master}',
+                MASTER_USER='repl_user',
+                MASTER_PASSWORD='StrongPassword123!',
+                MASTER_AUTO_POSITION=1
+            """
+            cursor.execute(change_master_sql)
+            
+            # Start replication
+            cursor.execute("START SLAVE")
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"Successfully reconfigured {slave_host}")
+            
+        except Exception as e:
+            print(f"Error reconfiguring {slave_host}: {e}")
+
+def find_best_slave():
+    """Find the most up-to-date slave"""
+    best_slave = None
+    max_position = 0
+    
+    for slave_host in SLAVE_HOSTS:
+        status = get_slave_status(slave_host)
+        if status:
+            # Check if slave is healthy
+            if (status['Slave_IO_Running'] == 'Yes' and 
+                status['Slave_SQL_Running'] == 'Yes' and
+                status['Seconds_Behind_Master'] is not None):
+                
+                exec_pos = status.get('Exec_Master_Log_Pos', 0)
+                if exec_pos > max_position:
+                    max_position = exec_pos
+                    best_slave = slave_host
+    
+    return best_slave
+
+def monitor_master():
+    """Main monitoring loop"""
+    consecutive_failures = 0
+    current_master = MASTER_HOST
+    
+    print(f"Starting MySQL HA Monitor...")
+    print(f"Master: {current_master}")
+    print(f"Slaves: {', '.join(SLAVE_HOSTS)}")
+    print(f"Check interval: {CHECK_INTERVAL}s\n")
+    
+    while True:
+        if check_mysql_connection(current_master):
+            consecutive_failures = 0
+            print(f"[{datetime.now()}] Master {current_master} is healthy")
+        else:
+            consecutive_failures += 1
+            print(f"[{datetime.now()}] Master {current_master} check failed ({consecutive_failures}/{MAX_RETRIES})")
+            
+            if consecutive_failures >= MAX_RETRIES:
+                print(f"\n!!! MASTER FAILURE DETECTED !!!")
+                send_alert(
+                    "MySQL Master Failure Detected",
+                    f"Master {current_master} is down. Initiating failover..."
+                )
+                
+                # Find best slave to promote
+                best_slave = find_best_slave()
+                
+                if best_slave:
+                    print(f"Selected {best_slave} as new master")
+                    
+                    if promote_slave_to_master(best_slave):
+                        # Reconfigure other slaves
+                        remaining_slaves = [s for s in SLAVE_HOSTS if s != best_slave]
+                        reconfigure_remaining_slaves(best_slave, remaining_slaves)
+                        
+                        # Update monitoring target
+                        current_master = best_slave
+                        SLAVE_HOSTS.remove(best_slave)
+                        consecutive_failures = 0
+                        
+                        print(f"\nFailover complete. New master: {current_master}\n")
+                    else:
+                        print("Failover failed!")
+                else:
+                    print("No healthy slave found for promotion!")
+                    send_alert(
+                        "MySQL Failover: No Healthy Slave",
+                        "Master is down but no healthy slave available for promotion"
+                    )
+        
+        time.sleep(CHECK_INTERVAL)
+
+if __name__ == "__main__":
+    try:
+        monitor_master()
+    except KeyboardInterrupt:
+        print("\nMonitoring stopped by user")
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        send_alert("MySQL Monitor Crashed", f"Monitor process failed: {e}")
+```
+
+## Step 4: Setup Monitor User
+
+```sql
+-- On all servers (master and slaves)
+CREATE USER 'monitor_user'@'%' IDENTIFIED BY 'MonitorPass123!';
+GRANT REPLICATION CLIENT, SUPER, RELOAD ON *.* TO 'monitor_user'@'%';
+FLUSH PRIVILEGES;
+```
+
+## Step 5: Deployment
+
+### How the Monitor Works
+
+**YES**, `mysql_ha_monitor.py` runs **continuously** as a background service:
+
+```
+┌─────────────────────────────────────────────┐
+│  mysql_ha_monitor.py Process                │
+│                                             │
+│  while True:  ← Infinite Loop               │
+│    ├─ Check Master (every 10 seconds)       │
+│    ├─ If Master UP: Continue monitoring     │
+│    └─ If Master DOWN (3 times):             │
+│         ├─ Find best slave                  │
+│         ├─ Promote to master                │
+│         ├─ Reconfigure other slaves         │
+│         └─ Continue monitoring new master   │
+│                                             │
+│  time.sleep(10)  ← Wait 10 seconds          │
+│  (Loop repeats forever)                     │
+└─────────────────────────────────────────────┘
+```
+
+### Install Dependencies
+
+```bash
+# Install Python MySQL connector
+pip3 install mysql-connector-python
+
+# Create directory for the script
+sudo mkdir -p /opt/mysql-ha
+sudo cp mysql_ha_monitor.py /opt/mysql-ha/
+sudo chmod +x /opt/mysql-ha/mysql_ha_monitor.py
+
+# Create systemd service
+sudo nano /etc/systemd/system/mysql-ha-monitor.service
+```
+
+### Systemd Service File
+
+```ini
+[Unit]
+Description=MySQL High Availability Monitor
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/mysql-ha
+ExecStart=/usr/bin/python3 /opt/mysql-ha/mysql_ha_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Restart if crashes
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Start the Service
+
+```bash
+# Reload systemd to recognize new service
+sudo systemctl daemon-reload
+
+# Enable service to start on boot
+sudo systemctl enable mysql-ha-monitor
+
+# Start the service NOW
+sudo systemctl start mysql-ha-monitor
+
+# Check if running
+sudo systemctl status mysql-ha-monitor
+
+# View live logs
+sudo journalctl -u mysql-ha-monitor -f
+
+# Stop the service (if needed)
+# sudo systemctl stop mysql-ha-monitor
+```
+
+### Service Behavior
+
+**The service will:**
+- ✅ Start automatically when server boots
+- ✅ Run continuously in the background
+- ✅ Restart automatically if it crashes (RestartSec=10)
+- ✅ Monitor master every 10 seconds (CHECK_INTERVAL)
+- ✅ Perform failover automatically when master fails
+- ✅ Log all activities to system journal
+
+**You can verify it's running:**
+
+```bash
+# Check process
+ps aux | grep mysql_ha_monitor.py
+
+# Check logs in real-time
+sudo journalctl -u mysql-ha-monitor -f --since "10 minutes ago"
+
+# Check service uptime
+sudo systemctl status mysql-ha-monitor
+```
+
+## Testing Failover
+
+```bash
+# Simulate master failure
+sudo systemctl stop mysql  # On master server
+
+# Monitor logs
+sudo journalctl -u mysql-ha-monitor -f
+
+# Verify new master
+mysql -h new_master_ip -u your_user -p -e "SHOW MASTER STATUS"
+
+# Verify slaves
+mysql -h slave_ip -u your_user -p -e "SHOW SLAVE STATUS\G"
+```
+
+## Health Checks
+
+```sql
+-- On Master
+SHOW MASTER STATUS;
+SHOW PROCESSLIST;
+
+-- On Slaves
+SHOW SLAVE STATUS\G
+-- Important fields:
+-- Slave_IO_Running: Yes
+-- Slave_SQL_Running: Yes
+-- Seconds_Behind_Master: 0 or low number
+-- Last_Error: (should be empty)
+```
+
+## Troubleshooting
+
+### Replication Lag
+```sql
+-- Check lag
+SHOW SLAVE STATUS\G | grep Seconds_Behind_Master
+
+-- If lag is high, check:
+-- 1. Network latency
+-- 2. Slave hardware resources
+-- 3. Large transactions on master
+```
+
+### Replication Errors
+```sql
+-- View error
+SHOW SLAVE STATUS\G
+
+-- Skip one transaction (use carefully!)
+STOP SLAVE;
+SET GLOBAL SQL_SLAVE_SKIP_COUNTER = 1;
+START SLAVE;
+```
+
+### Manual Promotion
+```sql
+-- On slave to promote
+STOP SLAVE;
+RESET SLAVE ALL;
+SET GLOBAL read_only = OFF;
+
+-- On other slaves
+STOP SLAVE;
+CHANGE MASTER TO MASTER_HOST='new_master_ip', MASTER_AUTO_POSITION=1;
+START SLAVE;
+```
+
+## Best Practices
+
+1. **Regular Backups**: Always maintain regular backups separate from replication
+2. **Monitoring**: Use monitoring tools like Prometheus + Grafana
+3. **Network**: Ensure stable, low-latency network between servers
+4. **Resources**: Slaves should have similar or better resources than master
+5. **Testing**: Regularly test failover procedures
+6. **Documentation**: Keep updated network diagrams and runbooks
+7. **Security**: Use SSL/TLS for replication connections in production
+
+## Advanced Options
+
+### Using ProxySQL for Connection Management
+ProxySQL can automatically route reads to slaves and writes to master, with automatic failover detection.
+
+### Using Orchestrator
+Orchestrator provides sophisticated MySQL HA management with topology visualization and automated failover.
+
+### Using MHA (Master High Availability)
+MHA is specifically designed for MySQL failover automation with minimal downtime (0-4 seconds).
