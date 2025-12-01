@@ -1,0 +1,101 @@
+1. Settings that should be the same on all servers
+
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_slave_updates = ON
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-format = ROW
+expire_logs_days = 7
+max_binlog_size = 500M
+sync_binlog = 1
+innodb_flush_log_at_trx_commit = 1
+innodb_buffer_pool_size = 60-70% of RAM
+innodb_log_file_size = 1G
+default_storage_engine = InnoDB
+innodb_file_per_table = 1
+
+
+2. Settings that must be different on each server
+
+Server ID
+server-id = 1   # Master
+server-id = 2   # Replica 1
+server-id = 3   # Replica 2
+
+Bind address (optional)
+bind-address = 192.168.1.10   # Master
+bind-address = 192.168.1.11   # Replica
+
+Port (only if you run multiple MySQL instances on same server)
+port = 3306
+
+3. Optional tuning per server
+
+innodb_buffer_pool_size may vary depending on the server’s RAM.
+
+Master may need larger buffer pool if it handles more writes.
+
+Replicas may need slightly smaller buffer pool if mostly for reads.
+
+slave_parallel_workers can be tuned based on CPU cores on each replica.
+
+
+[mysqld]
+
+# ------------------------
+# Basic Server Settings
+# ------------------------
+server-id = 1                        # Unique ID for this server in replication
+port = 3306
+bind-address = 0.0.0.0              # Listen on all interfaces (restrict with firewall if needed)
+datadir = /var/lib/mysql
+socket = /var/lib/mysql/mysql.sock
+pid-file = /var/run/mysqld/mysqld.pid
+skip-name-resolve                    # Avoid DNS lookups for speed
+
+# ------------------------
+# GTID / Replication
+# ------------------------
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_slave_updates = ON
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-format = ROW                  # Recommended for GTID
+expire_logs_days = 7                 # Cleanup old binlogs
+max_binlog_size = 500M
+sync_binlog = 1                      # Ensures no transactions are lost
+slave-parallel-workers = 4           # Allows parallel replication (tune per CPU cores)
+
+# Optional: replicate only certain DBs (not recommended for GTID with many DBs)
+# binlog_do_db = yourdbname
+# binlog_ignore_db = test
+
+# ------------------------
+# InnoDB / Performance / Durability
+# ------------------------
+default_storage_engine = InnoDB
+innodb_file_per_table = 1
+innodb_buffer_pool_size = 60-70% of RAM   # Adjust for your server
+innodb_log_file_size = 1G                  # Adjust depending on write volume
+innodb_flush_log_at_trx_commit = 1        # Full ACID safety
+innodb_flush_method = O_DIRECT            # Avoid double buffering
+
+# ------------------------
+# Connections / Network
+# ------------------------
+max_connections = 500
+thread_cache_size = 50
+table_open_cache = 2000
+open_files_limit = 65535
+
+# ------------------------
+# Logging
+# ------------------------
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/mysql-slow.log
+long_query_time = 2
+
+# ------------------------
+# Security / Misc
+# ------------------------
+symbolic-links=0
