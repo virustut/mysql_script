@@ -1,0 +1,702 @@
+# MySQL Master with 2 Slaves: Mumbai + Gurugram DR
+
+## Simple Architecture
+
+```
+                  ┌──────────────────┐
+                  │   MASTER         │
+                  │   Mumbai         │
+                  │   192.168.1.10   │
+                  └────────┬─────────┘
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+    ┌─────────▼─────────┐    ┌─────────▼──────────┐
+    │   SLAVE-1         │    │   SLAVE-2 (DR)     │
+    │   Mumbai          │    │   Gurugram         │
+    │   192.168.1.11    │    │   10.20.30.10      │
+    │   (Local Reads)   │    │   (DR/Reads)       │
+    └───────────────────┘    └────────────────────┘
+
+FAILOVER LOGIC:
+1. If Master (Mumbai) DOWN → Promote Gurugram Slave to Master
+2. Reconfigure Mumbai Slave to replicate from new Gurugram Master
+```
+
+---
+
+## Server Details
+
+| Location | Server Name | Role | IP Address | Purpose |
+|----------|-------------|------|------------|---------|
+| Mumbai | MySQL-Master | Master | 192.168.1.10 | Primary (Writes) |
+| Mumbai | MySQL-Slave1 | Slave | 192.168.1.11 | Local Read Replica |
+| Gurugram | MySQL-Slave2-DR | Slave | 10.20.30.10 | DR Read Replica |
+
+---
+
+## Step 1: Master Configuration (Mumbai)
+
+### /etc/mysql/my.cnf (Master - 192.168.1.10)
+
+```ini
+[mysqld]
+# Server Identity
+server-id = 1
+
+# Binary Logging
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-format = ROW
+max_binlog_size = 500M
+expire_logs_days = 7
+sync_binlog = 1
+
+# GTID (for easy failover)
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_slave_updates = ON
+
+# Performance
+innodb_flush_log_at_trx_commit = 1
+innodb_buffer_pool_size = 2G
+
+# Network
+bind-address = 0.0.0.0
+port = 3306
+
+# Replication Settings
+master_info_repository = TABLE
+relay_log_info_repository = TABLE
+```
+
+### Master Setup Commands
+
+```bash
+# Restart MySQL
+sudo systemctl restart mysql
+
+# Login to MySQL
+mysql -u root -p
+```
+
+```sql
+-- Create replication user (accessible from both Mumbai and Gurugram)
+CREATE USER 'repl_user'@'%' IDENTIFIED BY 'Repl@Pass2024!';
+GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+
+-- Create monitoring user
+CREATE USER 'monitor_user'@'%' IDENTIFIED BY 'Monitor@Pass2024!';
+GRANT REPLICATION CLIENT, SUPER, RELOAD, PROCESS ON *.* TO 'monitor_user'@'%';
+
+FLUSH PRIVILEGES;
+
+-- Check master status
+SHOW MASTER STATUS;
+
+-- Check GTID
+SHOW VARIABLES LIKE 'gtid_executed';
+```
+
+---
+
+## Step 2: Slave-1 Configuration (Mumbai)
+
+### /etc/mysql/my.cnf (Slave1 - 192.168.1.11)
+
+```ini
+[mysqld]
+# Server Identity
+server-id = 2
+
+# Binary Logging (needed for potential promotion)
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-format = ROW
+relay-log = /var/log/mysql/relay-bin
+relay_log_recovery = ON
+
+# GTID
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_slave_updates = ON
+
+# Read-Only (prevent writes)
+read_only = ON
+super_read_only = ON
+
+# Replication Settings
+master_info_repository = TABLE
+relay_log_info_repository = TABLE
+
+# Performance
+innodb_buffer_pool_size = 2G
+
+# Network
+bind-address = 0.0.0.0
+port = 3306
+```
+
+### Slave-1 Setup Commands
+
+```bash
+sudo systemctl restart mysql
+mysql -u root -p
+```
+
+```sql
+-- Stop slave if running
+STOP SLAVE;
+
+-- Configure to replicate from Master
+CHANGE MASTER TO
+  MASTER_HOST='192.168.1.10',
+  MASTER_USER='repl_user',
+  MASTER_PASSWORD='Repl@Pass2024!',
+  MASTER_AUTO_POSITION=1;
+
+-- Start replication
+START SLAVE;
+
+-- Verify (IMPORTANT!)
+SHOW SLAVE STATUS\G
+```
+
+**Check these values:**
+- `Slave_IO_Running: Yes`
+- `Slave_SQL_Running: Yes`
+- `Seconds_Behind_Master: 0` (or low number)
+- `Last_Error:` (should be empty)
+
+---
+
+## Step 3: Slave-2 Configuration (Gurugram DR)
+
+### /etc/mysql/my.cnf (Slave2-DR - 10.20.30.10)
+
+```ini
+[mysqld]
+# Server Identity
+server-id = 3
+
+# Binary Logging (needed for potential promotion)
+log-bin = /var/log/mysql/mysql-bin.log
+binlog-format = ROW
+relay-log = /var/log/mysql/relay-bin
+relay_log_recovery = ON
+
+# GTID
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_slave_updates = ON
+
+# Read-Only (prevent writes)
+read_only = ON
+super_read_only = ON
+
+# Replication Settings
+master_info_repository = TABLE
+relay_log_info_repository = TABLE
+
+# Performance
+innodb_buffer_pool_size = 2G
+
+# Network
+bind-address = 0.0.0.0
+port = 3306
+```
+
+### Slave-2 Setup Commands
+
+```bash
+sudo systemctl restart mysql
+mysql -u root -p
+```
+
+```sql
+-- Stop slave if running
+STOP SLAVE;
+
+-- Configure to replicate from Master (Mumbai)
+CHANGE MASTER TO
+  MASTER_HOST='192.168.1.10',  -- Mumbai Master
+  MASTER_USER='repl_user',
+  MASTER_PASSWORD='Repl@Pass2024!',
+  MASTER_AUTO_POSITION=1;
+
+-- Start replication
+START SLAVE;
+
+-- Verify (IMPORTANT!)
+SHOW SLAVE STATUS\G
+```
+
+**Check these values:**
+- `Slave_IO_Running: Yes`
+- `Slave_SQL_Running: Yes`
+- `Seconds_Behind_Master:` (might be higher due to inter-city network latency)
+
+---
+
+## Step 4: HA Monitor Script (Automatic Failover)
+
+Save as `/opt/mysql-ha/simple_ha_monitor.py`:
+
+```python
+#!/usr/bin/env python3
+"""
+Simple MySQL HA Monitor
+Monitors: Mumbai Master
+Slaves: Mumbai Slave-1, Gurugram Slave-2 (DR)
+If Master DOWN → Promote Gurugram DR to Master
+"""
+
+import mysql.connector
+import time
+import smtplib
+from email.mime.text import MIMEText
+from datetime import datetime
+
+# ========== CONFIGURATION ==========
+MASTER_HOST = '192.168.1.10'      # Mumbai Master
+SLAVE1_HOST = '192.168.1.11'      # Mumbai Slave
+SLAVE2_DR_HOST = '10.20.30.10'    # Gurugram DR Slave
+
+DB_USER = 'monitor_user'
+DB_PASSWORD = 'Monitor@Pass2024!'
+
+CHECK_INTERVAL = 10  # Check every 10 seconds
+MAX_RETRIES = 3      # Fail after 3 consecutive failures
+
+# Email Alerts (Optional - configure if needed)
+ENABLE_EMAIL = False
+EMAIL_FROM = 'alerts@yourcompany.com'
+EMAIL_TO = 'admin@yourcompany.com'
+SMTP_SERVER = 'smtp.gmail.com'
+SMTP_PORT = 587
+SMTP_PASSWORD = 'your_password'
+
+# ========== FUNCTIONS ==========
+
+def send_alert(subject, message):
+    """Send email alert"""
+    if not ENABLE_EMAIL:
+        return
+    
+    try:
+        msg = MIMEText(message)
+        msg['Subject'] = f"[MySQL HA] {subject}"
+        msg['From'] = EMAIL_FROM
+        msg['To'] = EMAIL_TO
+        
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_FROM, SMTP_PASSWORD)
+            server.send_message(msg)
+        print(f"✉ Alert sent: {subject}")
+    except Exception as e:
+        print(f"✗ Failed to send email: {e}")
+
+def check_mysql_alive(host):
+    """Check if MySQL is accessible"""
+    try:
+        conn = mysql.connector.connect(
+            host=host,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            connection_timeout=5
+        )
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"✗ Connection failed to {host}: {e}")
+        return False
+
+def get_slave_status(host):
+    """Get replication lag and status"""
+    try:
+        conn = mysql.connector.connect(
+            host=host,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            connection_timeout=5
+        )
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SHOW SLAVE STATUS")
+        status = cursor.fetchone()
+        conn.close()
+        return status
+    except Exception as e:
+        print(f"✗ Error getting slave status from {host}: {e}")
+        return None
+
+def promote_slave_to_master(slave_host, slave_name):
+    """Promote slave to master"""
+    print(f"\n{'='*60}")
+    print(f"🚀 PROMOTING {slave_name} ({slave_host}) TO MASTER")
+    print(f"{'='*60}\n")
+    
+    try:
+        conn = mysql.connector.connect(
+            host=slave_host,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        # Wait for slave to apply all relay logs
+        print("⏳ Waiting for slave to apply all pending changes...")
+        cursor.execute("STOP SLAVE IO_THREAD")
+        
+        # Check if SQL thread has processed everything
+        for i in range(30):  # Wait max 30 seconds
+            cursor.execute("SHOW SLAVE STATUS")
+            status = cursor.fetchone()
+            if status:
+                # Check if SQL thread is caught up
+                cursor.execute("SELECT @@gtid_executed")
+                print(f"   Syncing... (attempt {i+1}/30)")
+                time.sleep(1)
+            else:
+                break
+        
+        # Stop all replication
+        cursor.execute("STOP SLAVE")
+        cursor.execute("RESET SLAVE ALL")
+        
+        # Make writable
+        cursor.execute("SET GLOBAL read_only = OFF")
+        cursor.execute("SET GLOBAL super_read_only = OFF")
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✓ {slave_name} is now MASTER!")
+        send_alert(
+            "FAILOVER SUCCESS", 
+            f"{slave_name} ({slave_host}) promoted to MASTER at {datetime.now()}"
+        )
+        return True
+        
+    except Exception as e:
+        print(f"✗ FAILOVER FAILED: {e}")
+        send_alert("FAILOVER FAILED", f"Failed to promote {slave_name}: {e}")
+        return False
+
+def reconfigure_slave(slave_host, slave_name, new_master_host):
+    """Point slave to new master"""
+    print(f"🔧 Reconfiguring {slave_name} to replicate from {new_master_host}")
+    
+    try:
+        conn = mysql.connector.connect(
+            host=slave_host,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        cursor = conn.cursor()
+        
+        # Stop current replication
+        cursor.execute("STOP SLAVE")
+        
+        # Point to new master
+        change_master = f"""
+        CHANGE MASTER TO
+            MASTER_HOST='{new_master_host}',
+            MASTER_USER='repl_user',
+            MASTER_PASSWORD='Repl@Pass2024!',
+            MASTER_AUTO_POSITION=1
+        """
+        cursor.execute(change_master)
+        
+        # Start replication
+        cursor.execute("START SLAVE")
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✓ {slave_name} reconfigured successfully")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Failed to reconfigure {slave_name}: {e}")
+        return False
+
+def monitor():
+    """Main monitoring loop"""
+    consecutive_failures = 0
+    current_master = MASTER_HOST
+    master_name = "Mumbai Master"
+    
+    print("\n" + "="*60)
+    print("🔍 MYSQL GEO-DISTRIBUTED HA MONITOR STARTED")
+    print("="*60)
+    print(f"Master:      {current_master} ({master_name})")
+    print(f"Slave-1:     {SLAVE1_HOST} (Mumbai)")
+    print(f"Slave-2 DR:  {SLAVE2_DR_HOST} (Gurugram)")
+    print(f"Check Interval: {CHECK_INTERVAL} seconds")
+    print(f"Failover After: {MAX_RETRIES} consecutive failures")
+    print("="*60 + "\n")
+    
+    while True:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Check master health
+        if check_mysql_alive(current_master):
+            consecutive_failures = 0
+            print(f"[{timestamp}] ✓ {master_name} is HEALTHY")
+        else:
+            consecutive_failures += 1
+            print(f"[{timestamp}] ✗ {master_name} UNREACHABLE ({consecutive_failures}/{MAX_RETRIES})")
+            
+            # Trigger failover after MAX_RETRIES
+            if consecutive_failures >= MAX_RETRIES:
+                print("\n" + "!"*60)
+                print("⚠ MASTER FAILURE DETECTED - INITIATING FAILOVER")
+                print("!"*60 + "\n")
+                
+                send_alert(
+                    "MASTER DOWN", 
+                    f"Master {current_master} is unreachable. Starting failover..."
+                )
+                
+                # Choose DR slave (Gurugram) for failover
+                if check_mysql_alive(SLAVE2_DR_HOST):
+                    print(f"✓ Gurugram DR Slave is reachable")
+                    
+                    # Promote Gurugram to master
+                    if promote_slave_to_master(SLAVE2_DR_HOST, "Gurugram DR"):
+                        # Reconfigure Mumbai slave to point to Gurugram
+                        if check_mysql_alive(SLAVE1_HOST):
+                            reconfigure_slave(SLAVE1_HOST, "Mumbai Slave", SLAVE2_DR_HOST)
+                        
+                        # Update monitoring target
+                        current_master = SLAVE2_DR_HOST
+                        master_name = "Gurugram DR (New Master)"
+                        consecutive_failures = 0
+                        
+                        print("\n" + "="*60)
+                        print("✓ FAILOVER COMPLETE")
+                        print(f"New Master: {current_master}")
+                        print("="*60 + "\n")
+                    else:
+                        print("✗ Failover failed - manual intervention required!")
+                else:
+                    print("✗ CRITICAL: DR slave is also unreachable!")
+                    send_alert(
+                        "CRITICAL: ALL SERVERS DOWN",
+                        "Both Master and DR Slave are unreachable!"
+                    )
+        
+        # Wait before next check
+        time.sleep(CHECK_INTERVAL)
+
+# ========== MAIN ==========
+if __name__ == "__main__":
+    try:
+        monitor()
+    except KeyboardInterrupt:
+        print("\n\n⏹ Monitoring stopped by user")
+    except Exception as e:
+        print(f"\n✗ FATAL ERROR: {e}")
+        send_alert("MONITOR CRASHED", f"HA Monitor crashed: {e}")
+```
+
+---
+
+## Step 5: Deploy HA Monitor
+
+### Install & Configure
+
+```bash
+# Install Python MySQL connector
+sudo pip3 install mysql-connector-python
+
+# Create directory
+sudo mkdir -p /opt/mysql-ha
+
+# Copy script
+sudo nano /opt/mysql-ha/simple_ha_monitor.py
+# (Paste the script above)
+
+# Make executable
+sudo chmod +x /opt/mysql-ha/simple_ha_monitor.py
+
+# Test run (manually first)
+sudo python3 /opt/mysql-ha/simple_ha_monitor.py
+```
+
+### Create Systemd Service
+
+```bash
+sudo nano /etc/systemd/system/mysql-ha-monitor.service
+```
+
+```ini
+[Unit]
+Description=MySQL HA Monitor - Mumbai to Gurugram DR
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/mysql-ha
+ExecStart=/usr/bin/python3 /opt/mysql-ha/simple_ha_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Start Service
+
+```bash
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable on boot
+sudo systemctl enable mysql-ha-monitor
+
+# Start now
+sudo systemctl start mysql-ha-monitor
+
+# Check status
+sudo systemctl status mysql-ha-monitor
+
+# View live logs
+sudo journalctl -u mysql-ha-monitor -f
+```
+
+---
+
+## Step 6: Testing Failover
+
+### Test 1: Stop Mumbai Master
+
+```bash
+# On Mumbai Master server
+sudo systemctl stop mysql
+
+# Watch the monitor logs (on monitor server)
+sudo journalctl -u mysql-ha-monitor -f
+```
+
+**Expected Behavior:**
+1. Monitor detects master down after 3 checks (30 seconds)
+2. Promotes Gurugram DR slave to master
+3. Reconfigures Mumbai Slave-1 to replicate from Gurugram
+4. Applications should now connect to Gurugram
+
+### Test 2: Verify New Topology
+
+```sql
+-- On Gurugram (new master)
+SHOW MASTER STATUS;
+SHOW PROCESSLIST;  -- Should see Mumbai slave connected
+
+-- On Mumbai Slave-1
+SHOW SLAVE STATUS\G
+-- Master_Host should now be: 10.20.30.10 (Gurugram)
+```
+
+---
+
+## Step 7: Health Monitoring
+
+### Check Replication Status
+
+```sql
+-- On Master
+SHOW MASTER STATUS;
+SHOW PROCESSLIST;
+
+-- On Slaves
+SHOW SLAVE STATUS\G
+```
+
+**Important Fields:**
+- `Slave_IO_Running: Yes`
+- `Slave_SQL_Running: Yes`
+- `Seconds_Behind_Master: 0` (Mumbai should be ~0, Gurugram might be 1-5 seconds due to distance)
+- `Last_Error:` (should be empty)
+
+### Monitor Script Status
+
+```bash
+# Check if running
+sudo systemctl status mysql-ha-monitor
+
+# View logs
+sudo journalctl -u mysql-ha-monitor --since "1 hour ago"
+
+# Check process
+ps aux | grep simple_ha_monitor
+```
+
+---
+
+## Application Connection Configuration
+
+### Primary Operations (Normal State)
+
+```python
+# Application config - Normal state
+MYSQL_MASTER = "192.168.1.10"  # Mumbai Master (Writes)
+MYSQL_SLAVE_READ = "192.168.1.11"  # Mumbai Slave (Reads)
+```
+
+### After Failover
+
+```python
+# After Mumbai goes down - Update application config
+MYSQL_MASTER = "10.20.30.10"  # Gurugram DR (Now Master - Writes)
+MYSQL_SLAVE_READ = "192.168.1.11"  # Mumbai Slave (if still alive - Reads)
+```
+
+**Tip:** Use DNS or a load balancer with health checks to automatically route traffic!
+
+---
+
+## Important Notes
+
+1. **Network Latency**: Gurugram slave will have higher replication lag (10-50ms) due to inter-city network distance
+
+2. **Firewall Rules**: Ensure ports 3306 is open between Mumbai ↔ Gurugram
+
+3. **VPN/Dedicated Link**: Use VPN or dedicated fiber link between datacenters for security and reliability
+
+4. **Monitoring Location**: Run the HA monitor script on a separate server (not on master or slaves)
+
+5. **Manual Failback**: After Mumbai master is fixed, you need to manually fail back if desired
+
+---
+
+## Troubleshooting
+
+### Replication Lag
+
+```sql
+-- Check lag
+SHOW SLAVE STATUS\G | grep Seconds_Behind_Master
+```
+
+### Replication Stopped
+
+```sql
+-- Check error
+SHOW SLAVE STATUS\G
+
+-- Restart if needed
+STOP SLAVE;
+START SLAVE;
+```
+
+### Monitor Not Working
+
+```bash
+# Check logs
+sudo journalctl -u mysql-ha-monitor -n 100
+
+# Restart service
+sudo systemctl restart mysql-ha-monitor
+```
