@@ -1,0 +1,257 @@
+📄 TEXT FILE CONTENT — MySQL Master–Slave Replication (Master = Read/Write, Slave = Read-Only)
+
+
+============================================================
+         MySQL MASTER–SLAVE REPLICATION SETUP
+     Master = Read + Write | Slave = Read-Only
+        Works for MySQL 8.0 and MySQL 8.4 LTS
+============================================================
+
+GOAL:
+- Master server handles all writes and reads.
+- Slave server is read-only for applications.
+- Slave applies changes using replication.
+- Users cannot write on Slave.
+- Replication thread continues without issues.
+
+============================================================
+ STEP 1 — MASTER CONFIGURATION
+============================================================
+
+Edit MySQL config on MASTER:
+
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+Add or modify:
+
+server-id = 1
+log_bin = mysql-bin
+# Optional: replicate only one DB
+# binlog_do_db = yourdbname
+
+Save and restart:
+sudo systemctl restart mysql
+
+============================================================
+ STEP 2 — CREATE REPLICATION USER ON MASTER
+============================================================
+
+Login:
+sudo mysql
+
+Create user:
+
+CREATE USER 'repl'@'%' IDENTIFIED BY 'StrongPassword123';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+
+============================================================
+ STEP 3 — GET MASTER BINARY LOG POSITION
+============================================================
+
+On MASTER run:
+
+SHOW MASTER STATUS;
+
+Output example:
++------------------+----------+
+| File             | Position |
++------------------+----------+
+| mysql-bin.000001 |    12345 |
++------------------+----------+
+
+Save these:
+MASTER_LOG_FILE = mysql-bin.000001
+MASTER_LOG_POS  = 12345
+
+============================================================
+ STEP 4 — SLAVE CONFIGURATION
+============================================================
+
+Edit MySQL config on SLAVE:
+
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+Add:
+
+server-id = 2
+read_only = 1
+super_read_only = 1
+
+Restart:
+
+sudo systemctl restart mysql
+
+============================================================
+ STEP 5 — CONNECT SLAVE TO MASTER
+============================================================
+
+Login to SLAVE:
+sudo mysql
+
+Configure:
+
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST='MASTER_IP',
+  SOURCE_USER='repl',
+  SOURCE_PASSWORD='StrongPassword123',
+  SOURCE_LOG_FILE='mysql-bin.000001',
+  SOURCE_LOG_POS=12345;
+
+Start replication:
+
+START REPLICA;
+
+Check status:
+
+SHOW REPLICA STATUS\G;
+
+You must see:
+
+Replica_IO_Running: Yes
+Replica_SQL_Running: Yes
+
+============================================================
+ STEP 6 — ENFORCE READ-ONLY MODE ON SLAVE
+============================================================
+
+On SLAVE:
+
+SET GLOBAL read_only = 1;
+SET GLOBAL super_read_only = 1;
+
+(Already in my.cnf as well)
+
+Applications cannot write to Slave.
+Replication thread CAN write.
+
+============================================================
+ STEP 7 — TEST REPLICATION
+============================================================
+
+On MASTER:
+INSERT INTO yourtable VALUES (...);
+
+On SLAVE:
+SELECT * FROM yourtable;
+
+Data must appear.
+
+Test write on SLAVE:
+INSERT INTO yourtable VALUES (...);
+
+Expected error:
+ERROR 1290 – The MySQL server is running with the --read-only option.
+
+============================================================
+ OPTIONAL SETTINGS
+============================================================
+
+Enable semi-sync replication (optional):
+
+On MASTER:
+INSTALL PLUGIN rpl_semi_sync_source SONAME 'semisync_source.so';
+SET GLOBAL rpl_semi_sync_source_enabled = ON;
+
+On SLAVE:
+INSTALL PLUGIN rpl_semi_sync_replica SONAME 'semisync_replica.so';
+SET GLOBAL rpl_semi_sync_replica_enabled = ON;
+
+Restart both services.
+
+============================================================
+ UNINSTALL OR RESET REPLICATION (OPTIONAL)
+============================================================
+
+On SLAVE:
+
+STOP REPLICA;
+RESET REPLICA ALL;
+
+On MASTER:
+
+DROP USER 'repl'@'%';
+
+============================================================
+ END OF MySQL MASTER–SLAVE REPLICATION GUIDE
+============================================================
+
+✅ Scenario
+Master goes down (crash, maintenance, etc.)
+
+Slave is fully caught up (all replication applied)
+You want Slave → Master
+Applications now write to new master
+
+📌 Important Preconditions
+
+Slave must be fully synchronized with master:
+SHOW SLAVE STATUS\G;
+
+Check:
+Seconds_Behind_Master: 0
+Replica_IO_Running: Yes
+Replica_SQL_Running: Yes
+
+Make sure no writes are pending on old master (if possible).
+
+Applications must be redirected to new master.
+.📌 Step 1 — Stop Slave Replication
+
+On the slave:
+STOP REPLICA;
+RESET REPLICA ALL;
+
+
+STOP REPLICA stops replication threads
+RESET REPLICA ALL clears replication info (so it’s no longer a slave)
+
+📌 Step 2 — Make Slave Writable
+
+Remove read-only restrictions:
+SET GLOBAL read_only = OFF;
+SET GLOBAL super_read_only = OFF;
+
+📌 Step 3 — Update Applications
+
+Point all application connections to the new master IP/hostname
+Or use a virtual IP / DNS swap if you use HAProxy, ProxySQL, or Keepalived.
+
+📌 Step 4 — Optional — Configure New Slave(s)
+If you have other slaves, point them to the new master:
+
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST='NEW_MASTER_IP',
+  SOURCE_USER='repl',
+  SOURCE_PASSWORD='StrongPassword123',
+  SOURCE_LOG_FILE='mysql-bin.000001',
+  SOURCE_LOG_POS=4;  -- get from new master's SHOW MASTER STATUS
+
+Then:
+START REPLICA;
+
+📌 Step 5 — Verify New Master
+SHOW MASTER STATUS;
+SHOW DATABASES;
+
+Ensure everything is correct
+Test inserts/updates on new master
+
+⚠ Important Notes
+
+Manual failover only:
+Standard MySQL replication does not auto-promote slaves. For automatic failover, use MySQL Group Replication, MHA (Master High Availability), or Orchestrator.
+
+Data loss risk:
+If the old master had unreplicated transactions, promoting a slave may lose them. Make sure slave is fully caught up.
+
+✅ Summary (Steps to Promote Slave)
+
+Stop replication: STOP REPLICA; RESET REPLICA ALL;
+Disable read-only: SET GLOBAL read_only=OFF; SET GLOBAL super_read_only=OFF;
+Redirect applications to new master
+Update any other slaves to replicate from new master
+Verify replication & data integrity
+
+Backups:
+Always take a backup (mysqldump or LVM snapshot) before failover if possible.
