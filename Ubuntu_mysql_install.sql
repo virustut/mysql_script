@@ -1,3 +1,4 @@
+
 ==========================================================
         MySQL Server Installation – Ubuntu 22.x
 ==========================================================
@@ -272,4 +273,9 @@ sudo rm -rf /var/lib/mysql
 ============================================================
            END OF MySQL 8.4 LTS INSTALLATION GUIDE
 ============================================================
+
+✔ MariaDB CAN do this, MySQL CANNOT
+
+replicate-ignore-statements = delete
+
 
