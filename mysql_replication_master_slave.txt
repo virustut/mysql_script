@@ -240,7 +240,7 @@ Test inserts/updates on new master
 ⚠ Important Notes
 
 Manual failover only:
-Standard MySQL replication does not auto-promote slaves. For automatic failover, use MySQL Group Replication, MHA (Master High Availability), or Orchestrator.
+Standard MySQL replication does not auto-promote slaves. For automatic failover, use MySQL Group Replication, MHA (Master High Availability) .
 
 Data loss risk:
 If the old master had unreplicated transactions, promoting a slave may lose them. Make sure slave is fully caught up.
