@@ -125,3 +125,151 @@ sudo rm -rf /var/lib/mysql
 ==========================================================
             END OF MySQL INSTALLATION GUIDE
 ==========================================================
+
+✅ Install MySQL 8.4 LTS on Ubuntu 22.x (Official MySQL Repo)
+
+============================================================
+      MySQL 8.4 LTS - Installation Guide for Ubuntu 22.x
+============================================================
+
+PREREQUISITES
+-------------
+1. Ubuntu 22.04 / 22.10 / 22.2 (64-bit)
+2. sudo/root privileges
+3. Internet connection
+4. Port 3306 free (needed only for remote access)
+5. System updated: sudo apt update
+
+============================================================
+ STEP 1 — Update the system
+============================================================
+
+sudo apt update
+
+============================================================
+ STEP 2 — Download MySQL APT Repository Package
+============================================================
+
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.29-1_all.deb
+
+============================================================
+ STEP 3 — Install MySQL APT Repository
+============================================================
+
+sudo dpkg -i mysql-apt-config_0.8.29-1_all.deb
+
+A configuration screen appears.
+Select:
+
+  MySQL Server & Cluster -> mysql-8.4-lts
+
+Then choose:
+  OK  ->  Apply
+
+If you want to reconfigure later:
+
+sudo dpkg-reconfigure mysql-apt-config
+
+============================================================
+ STEP 4 — Update APT Again (Important)
+============================================================
+
+sudo apt update
+
+============================================================
+ STEP 5 — Install MySQL 8.4 LTS Server
+============================================================
+
+sudo apt install mysql-server -y
+
+This installs:
+- MySQL 8.4 LTS Server
+- MySQL 8.4 Client
+- mysqld service
+
+============================================================
+ STEP 6 — Start and Enable MySQL
+============================================================
+
+sudo systemctl start mysql
+sudo systemctl enable mysql
+
+Check status:
+
+systemctl status mysql
+
+============================================================
+ STEP 7 — Secure MySQL Installation
+============================================================
+
+sudo mysql_secure_installation
+
+Recommended answers:
+- Validate password plugin?     -> Y
+- Remove anonymous users?       -> Y
+- Disallow remote root login?   -> Y
+- Remove test database?         -> Y
+- Reload privilege tables?      -> Y
+
+============================================================
+ STEP 8 — Verify Installed MySQL Version
+============================================================
+
+mysql --version
+
+OR:
+
+sudo mysql -e "SELECT VERSION();"
+
+Expected output:
+8.4.x
+
+============================================================
+ OPTIONAL — Allow Remote MySQL Access (3306)
+============================================================
+
+Edit MySQL config:
+
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+Find line:
+bind-address = 127.0.0.1
+
+Change to:
+bind-address = 0.0.0.0
+
+Save -> Restart MySQL:
+
+sudo systemctl restart mysql
+
+Allow firewall:
+sudo ufw allow 3306
+
+============================================================
+ OPTIONAL — Create Database and User
+============================================================
+
+sudo mysql
+
+CREATE DATABASE mydb;
+
+CREATE USER 'myuser'@'%' IDENTIFIED BY 'MyPassword123';
+
+GRANT ALL PRIVILEGES ON mydb.* TO 'myuser'@'%';
+FLUSH PRIVILEGES;
+
+exit;
+
+============================================================
+ UNINSTALL / REMOVE MySQL (Optional)
+============================================================
+
+sudo systemctl stop mysql
+sudo apt remove --purge mysql-server mysql-client mysql-common -y
+sudo apt autoremove -y
+sudo rm -rf /var/lib/mysql
+
+============================================================
+           END OF MySQL 8.4 LTS INSTALLATION GUIDE
+============================================================
+
