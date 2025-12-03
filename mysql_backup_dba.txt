@@ -320,6 +320,82 @@ Run any time
 
 
 
+✅ Backup all user databases automatically (excluding system DBs)
+
+✅ Step 1: Create the script
+sudo nano /usr/local/bin/mysql_backup_each_db.sh
+
+Paste this in .sh
+#!/bin/bash
+
+# === CONFIGURATION ===
+USER="root"
+PASSWORD="your_mysql_password"
+BACKUP_DIR="/var/backups/mysql"
+DATE=$(date +"%Y-%m-%d")
+
+# Create backup directory
+mkdir -p $BACKUP_DIR
+
+# Get list of user databases only
+DATABASES=$(mysql -u $USER -p$PASSWORD -e "SHOW DATABASES;" | grep -Ev "(Database|information_schema|performance_schema|mysql|sys)")
+
+# Backup each DB separately
+for DB in $DATABASES; do
+    mysqldump -u $USER -p$PASSWORD $DB > $BACKUP_DIR/${DB}-${DATE}.sql
+done
+
+# Delete backups older than 3 days
+find $BACKUP_DIR -type f -name "*.sql" -mtime +3 -exec rm {} \;
+
+Make script executable:
+sudo chmod +x /usr/local/bin/mysql_backup_each_db.sh
+
+✅ Step 2: Create cron job
+sudo crontab -e
+
+0 2 * * * /usr/local/bin/mysql_backup_each_db.sh
+
+
+
+
+✅ Compressed MySQL Per-Database Backup Script
+
+sudo nano /usr/local/bin/mysql_backup_each_db.sh
+
+#!/bin/bash
+
+# === CONFIGURATION ===
+USER="root"
+PASSWORD="your_mysql_password"
+BACKUP_DIR="/var/backups/mysql"
+DATE=$(date +"%Y-%m-%d")
+
+# Create backup directory
+mkdir -p $BACKUP_DIR
+
+# Get list of user databases only
+DATABASES=$(mysql -u $USER -p$PASSWORD -e "SHOW DATABASES;" | grep -Ev "(Database|information_schema|performance_schema|mysql|sys)")
+
+# Backup each DB separately (compressed)
+for DB in $DATABASES; do
+    echo "Backing up $DB ..."
+    mysqldump -u $USER -p$PASSWORD $DB | gzip > $BACKUP_DIR/${DB}-${DATE}.sql.gz
+done
+
+# Delete backups older than 3 days
+find $BACKUP_DIR -type f -name "*.sql.gz" -mtime +3 -exec rm {} \;
+
+Make executable:
+sudo chmod +x /usr/local/bin/mysql_backup_each_db.sh
+
+✅ Cron Job (Daily at 2 AM)
+sudo crontab -e
+
+Add:
+0 2 * * * /usr/local/bin/mysql_backup_each_db.sh
+
+
 
 
 
