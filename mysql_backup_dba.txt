@@ -397,6 +397,37 @@ Add:
 
 
 
+✅ Method 1: Restore directly from .gz (recommended)
+
+No need to extract the file first.
+gunzip -c backupfile.sql.gz | mysql -u root -p database_name
+
+Explanation:
+
+gunzip -c → decompresses the file to stdout
+Pipe (|) sends it to MySQL
+database_name = the database you want to restore into
+
+✅ Method 2: Extract first, then restore
+
+Extract:
+gunzip backupfile.sql.gz
+
+This creates:
+backupfile.sql
+
+Restore normally:
+mysql -u root -p database_name < backupfile.sql
+
+🔥 Important Notes
+✔ You must create the database first (if not exist):
+
+mysql -u root -p -e "CREATE DATABASE database_name;"
+
+✔ If the backup contains DROP/CREATE statements, it will replace the existing DB.
+
+If you want to prevent overwriting, open the .sql file and remove those lines.
+
 
 
 
