@@ -424,7 +424,8 @@ for DB in $DATABASES; do
     OUTPUT_FILE="${BACKUP_DIR}/${DB}-${DATE}.sql.gz"
 
     # Backup and compress
-    if mysqldump -u $USER -p$PASSWORD $DB | gzip > "$OUTPUT_FILE" 2>/tmp/mysql_backup_error; then
+    if mysqldump --triggers --routines --events --no-tablespaces -u $USER -p$PASSWORD $DB | gzip > "$OUTPUT_FILE" 2>/tmp/mysql_backup_error; then
+
         echo "$(date): SUCCESS - $DB backup saved to $OUTPUT_FILE" >> $SUCCESS_LOG
     else
         echo "$(date): FAILED - $DB backup" >> $ERROR_LOG
@@ -473,6 +474,7 @@ mysql -u root -p -e "CREATE DATABASE database_name;"
 ✔ If the backup contains DROP/CREATE statements, it will replace the existing DB.
 
 If you want to prevent overwriting, open the .sql file and remove those lines.
+
 
 
 
