@@ -100,3 +100,19 @@ echo "📊 Final Replication Status on S2:"
 mysql -h$S2_IP -u$MYSQL_USER -p$MYSQL_PASS -e "SHOW SLAVE STATUS\G"
 
 echo "✅✅ FAILBACK SUCCESSFUL — S1 is MASTER, S2 is SLAVE ✅✅"
+
+
+
+Note : Safety Check before running 
+Confirm this on S2(current master) before running:
+select @@Global.gtid_executed;
+show processlist;
+
+Ensure no heavy write workload during failback
+Ensure S1 had no writes while it was down
+
+Note : Do not run this script if 
+
+S1 accepted writes while it was down
+GTID is disable
+log_slave_updates is OFF
