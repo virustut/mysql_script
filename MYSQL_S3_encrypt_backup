@@ -1,0 +1,96 @@
+✔ Credentials encrypted (mysql_config_editor)
+✔ Backup encrypted (AES-256)
+✔ No passwords in scripts
+✔ Read-only replica safe
+✔ GTID safe
+✔ S3 off-site DR
+
+🔑 STEP 1: Store encryption password securely
+
+Create a root-only readable file:
+echo 'MyStrongEncryptionKey@123' > /root/.mysql_backup_enc
+chmod 600 /root/.mysql_backup_enc
+
+⚠️ Never hardcode encryption keys in scripts
+
+🧾 STEP 2: Combined Backup + Encrypt + S3 Script
+
+Save as :
+/usr/local/bin/mysql_backup_s3_encrypt.sh
+
+#!/bin/bash
+
+set -e
+
+# ===== CONFIG =====
+BACKUP_DIR="/MYSQL_BACKUP"
+DATE=$(date +%F)
+S3_BUCKET="s3://my-mysql-backups/prod/mysql"
+ENC_KEY_FILE="/root/.mysql_backup_enc"
+RETENTION_DAYS=7
+
+mkdir -p "$BACKUP_DIR"
+
+ENC_KEY=$(cat "$ENC_KEY_FILE")
+
+# ===== GET DATABASE LIST =====
+DATABASES=$(mysql --login-path=backup -N -e "
+SHOW DATABASES
+WHERE \`Database\`
+NOT IN ('information_schema','performance_schema','mysql','sys')
+")
+
+# ===== BACKUP EACH DATABASE =====
+for DB in $DATABASES
+do
+  echo "Backing up database: $DB"
+
+  mysqldump \
+    --login-path=backup \
+    --single-transaction \
+    --skip-lock-tables \
+    --no-tablespaces \
+    --routines \
+    --events \
+    --triggers \
+    --set-gtid-purged=OFF \
+    "$DB" \
+  | gzip \
+  | openssl enc -aes-256-cbc -salt -pbkdf2 -pass pass:"$ENC_KEY" \
+  > "$BACKUP_DIR/${DB}_${DATE}.sql.gz.enc"
+done
+
+# ===== PUSH OLD BACKUPS TO S3 =====
+find "$BACKUP_DIR" -type f -name "*.enc" -mtime +$RETENTION_DAYS -print0 | while IFS= read -r -d '' file
+do
+  echo "Uploading to S3: $file"
+  aws s3 cp "$file" "$S3_BUCKET/"
+  rm -f "$file"
+done
+
+echo "Backup + encryption + S3 upload completed successfully"
+
+
+🔧 STEP 3: Permissions
+
+chmod +x /usr/local/bin/mysql_backup_s3_encrypt.sh
+
+⏰ STEP 4: Cron Job (Daily 2 AM)
+
+crontab -e 
+0 2 * * * /usr/local/bin/mysql_backup_s3_encrypt.sh >> /var/log/mysql_backup.log 2>&1
+
+
+🔓 STEP 5: How to DECRYPT & RESTORE (VERY IMPORTANT)
+Decrypt:
+
+openssl enc -d -aes-256-cbc -pbkdf2 \
+  -in mydb_2026-01-02.sql.gz.enc \
+  -out mydb.sql.gz \
+  -pass pass:MyStrongEncryptionKey@123
+
+gunzip mydb.sql.gz
+mysql mydb < mydb.sql
+
+
+
