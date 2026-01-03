@@ -91,7 +91,7 @@ mysql --login-path=backup -e "SELECT USER();"
 
 
 
-
+--------------Encryption---------------
 
 🔑 STEP 1: Store encryption password securely
 
@@ -104,7 +104,9 @@ chmod 600 /root/.mysql_backup_enc
 🧾 STEP 2: Combined Backup + Encrypt + S3 Script
 
 Save as :
-/usr/local/bin/mysql_backup_s3_encrypt.sh
+vi /usr/local/bin/mysql_backup_s3_encrypt.sh
+
+-----------Backup script-----------
 
 #!/bin/bash
 
@@ -179,6 +181,39 @@ openssl enc -d -aes-256-cbc -pbkdf2 \
 
 gunzip mydb.sql.gz
 mysql mydb < mydb.sql
+
+
+✅ STEP 1: Confirm the file is encrypted
+
+file /MYSQL_BACKUP/*.enc | head
+
+
+🔍 Try to read it (should FAIL)
+zcat mydb_2026-01-02.sql.gz.enc
+
+🔐 STEP 2: Decrypt test (WITHOUT restoring)
+openssl enc -d -aes-256-cbc -pbkdf2 \
+  -in /MYSQL_BACKUP/recordings_2026-01-03.sql.gz.enc \
+  -out /tmp/recordings_test.sql.gz \   # here in place of tmp u put your own path or put same path where you encypted bakcup genrate 
+  -pass file:/root/.mysql_backup_enc
+
+🔍 Verify decrypted file type
+file /tmp/recordings_test.sql.gz
+
+📦 STEP 3: Validate SQL content (without restoring)
+
+gunzip -c /tmp/recordings_test.sql.gz | head -20
+
+🧪 STEP 4: REAL VALIDATION (Restore test – safest)
+Create test DB
+
+mysql --login-path=backup -e "CREATE DATABASE recordings_restore_test;"
+
+Restore backup
+gunzip -c /tmp/recordings_test.sql.gz | mysql recordings_restore_test
+
+
+
 
 
 
