@@ -5,6 +5,65 @@
 ✔ GTID safe
 ✔ S3 off-site DR
 
+✅ Step 1: Install AWS CLI
+apt install awscli -y 
+
+✅ Step 2: Configure AWS credentials (secure)
+aws configure
+
+Enter:
+AWS Access Key ID
+AWS Secret Access Key
+Region (e.g. ap-south-1)
+Output format: json/table/yaml
+
+Credentials stored securely in:
+~/.aws/credentials
+
+✅ Step 3: Push backups older than 7 days to S3
+
+Example:
+
+Local backup path: /MYSQL_BACKUP
+
+S3 bucket: my-mysql-backups
+
+Folder in S3: prod/mysql
+
+aws s3 sync /MYSQL_BACKUP s3://my-mysql-backups/prod/mysql \
+  --exclude "*" \
+  --include "*.sql.gz"
+
+
+✅ Step 4: Move only OLD backups (>7 days) to S3
+
+find /MYSQL_BACKUP -type f -name "*.sql.gz" -mtime +7 -print0 | while IFS= read -r -d '' file
+do
+  aws s3 cp "$file" s3://my-mysql-backups/prod/mysql/
+  rm -f "$file"
+done
+
+✅ Step 5: Cron job (Daily at 4 AM)
+
+0 4 * * * /usr/local/bin/mysql_s3_push.sh >> /var/log/mysql_s3.log 2>&1
+
+
+🔐 S3 BEST PRACTICE
+
+Enable bucket versioning
+
+Enable S3 lifecycle policy:
+
+Move to Glacier after 30 days
+
+Delete after 90 days
+
+
+-----------------OR Create a Script Below to Push in to our AWS S3 Bucket----------------
+
+
+
+
 🔑 STEP 1: Store encryption password securely
 
 Create a root-only readable file:
