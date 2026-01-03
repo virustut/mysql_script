@@ -61,6 +61,35 @@ Delete after 90 days
 
 -----------------OR Create a Script Below to Push in to our AWS S3 Bucket----------------
 
+✅ FIX STEP 1: Check login-path exists
+
+mysql_config_editor print --all
+
+we see something like this 
+[backup]
+user = backupuser
+
+if not do below steps
+
+✅ FIX STEP 2: Recreate login-path (IMPORTANT)
+Run as root (same user running the script):
+
+mysql_config_editor remove --login-path=backup
+
+Then recreate:
+
+mysql_config_editor set \
+  --login-path=backup \
+  --user=backupuser \ # put your user in place of backupuser 
+  --password
+
+Enter your user password 
+
+✅ FIX STEP 3: Test manually (MANDATORY)
+
+mysql --login-path=backup -e "SELECT USER();"
+
+
 
 
 
