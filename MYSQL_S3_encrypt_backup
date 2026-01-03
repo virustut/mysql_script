@@ -5,8 +5,20 @@
 ✔ GTID safe
 ✔ S3 off-site DR
 
+
+
 ✅ Step 1: Install AWS CLI
-apt install awscli -y 
+cd /tmp
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+
+--- apt install awscli -y (optional) below is a correct way  
+
+unzip awscliv2.zip
+sudo ./aws/install
+
+verify the version
+aws --version
+
 
 ✅ Step 2: Configure AWS credentials (secure)
 aws configure
@@ -19,6 +31,12 @@ Output format: json/table/yaml
 
 Credentials stored securely in:
 ~/.aws/credentials
+
+# to check the conigure is ok or not 
+aws configure list
+
+aws sts get-caller-identity
+
 
 ✅ Step 3: Push backups older than 7 days to S3
 
@@ -80,8 +98,16 @@ Then recreate:
 
 mysql_config_editor set \
   --login-path=backup \
-  --user=backupuser \ # put your user in place of backupuser 
+  --user=backupuser \
   --password
+
+----------------OR----------------
+mysql_config_editor set \
+--login-path=backup \
+--user=backup \
+--host=localhost \
+--password
+
 
 Enter your user password 
 
